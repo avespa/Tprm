@@ -6,6 +6,7 @@
 <title>TPRM · Gestión de Riesgos de Terceros</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
   :root {
@@ -124,6 +125,32 @@
 
   .btn-success { background:var(--green-soft);color:var(--green);border:1px solid rgba(16,185,129,.2); }
   .btn-success:hover { background:rgba(16,185,129,.2); }
+
+  /* API LOOKUP */
+  .api-lookup-box { background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-top:8px; }
+  .api-result-card { background:var(--surface3);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;font-size:12px; }
+  .api-result-hit { background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;font-size:12px; }
+  .api-result-clean { background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;font-size:12px; }
+  .api-result-partial { background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;font-size:12px; }
+  .api-spinning { display:inline-block;animation:spin .8s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
+  .api-provider-card { border:1px solid var(--border2);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s; }
+  .api-provider-card:hover { border-color:var(--accent);background:var(--accent-glow); }
+  .api-provider-card.selected { border-color:var(--accent);background:var(--accent-glow); }
+
+  /* IMPORT ZONE */
+  .import-zone { border:2px dashed var(--border2);border-radius:var(--radius);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative; }
+  .import-zone:hover, .import-zone.drag-over { border-color:var(--accent);background:var(--accent-glow); }
+  .import-zone input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+  .import-zone-icon { font-size:36px;margin-bottom:10px;display:block; }
+
+  .ai-proposal-bar { background:linear-gradient(90deg,rgba(99,102,241,.15),rgba(59,130,246,.15));border:1px solid rgba(99,102,241,.3);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px; }
+  .ai-proposal-badge { background:linear-gradient(135deg,#6366f1,#3b82f6);color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px;flex-shrink:0; }
+
+  .proposal-section-header { background:var(--surface3);border-radius:var(--radius-sm);padding:8px 14px;margin:12px 0 8px;font-size:12px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px; }
+
+  .analyzing-overlay { text-align:center;padding:48px 24px; }
+  .analyzing-spinner { width:48px;height:48px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px; }
 
   /* FORMS */
   .form-group { margin-bottom: 16px; }
@@ -499,6 +526,99 @@ const SVG = {
   check: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
 };
 
+// ══════════════════════════════════════════════════════════════
+//  API PROVIDERS — configuración de integraciones externas
+// ══════════════════════════════════════════════════════════════
+const API_PROVIDERS = {
+
+  // ── sanctions.network ────────────────────────────────────────
+  // 100% gratuito, sin API key, sin registro.
+  // Cubre: OFAC SDN (USA) + UN Security Council + EU Financial Sanctions File
+  // Búsqueda fuzzy por similitud de nombre (trigramas PostgreSQL)
+  // Docs: https://sanctions.network
+  sanctionsnetwork: {
+    nombre: 'Sanctions Network',
+    descripcion: 'OFAC + ONU + UE — gratuito, sin registro, sin límites',
+    icono: '🛡️',
+    color: '#ef4444',
+    docsUrl: 'https://sanctions.network',
+    requiresKey: false,
+    fuentes: ['OFAC SDN (USA)', 'UN Security Council', 'EU Financial Sanctions'],
+    autoSelectRule: (result) => {
+      if (!result.hits) return { opcionIdx: 0, justificacion: 'Sin coincidencias en OFAC, ONU ni UE' };
+      const maxScore = result.topHit?.similarityScore || 0;
+      if (maxScore >= 0.85) return { opcionIdx: 2, justificacion: `Coincidencia fuerte — score ${(maxScore*100).toFixed(0)}% en ${result.topHit?.source?.toUpperCase()}` };
+      return { opcionIdx: 1, justificacion: `${result.hits} coincidencia(s) parcial(es) — score máx. ${(maxScore*100).toFixed(0)}%` };
+    },
+    defaultOpciones: [
+      { texto: 'Sin coincidencias (OFAC + ONU + UE)', valor: 3, flag: false },
+      { texto: 'Coincidencia parcial — requiere verificación manual', valor: 1, flag: false },
+      { texto: 'Coincidencia fuerte en lista de sanciones', valor: 0, flag: true }
+    ]
+  },
+
+  // ── OpenCorporates ───────────────────────────────────────────
+  // Gratuito con límite de ~10 req/día sin key.
+  // Datos registrales de empresas en +140 países.
+  opencorporates: {
+    nombre: 'OpenCorporates',
+    descripcion: 'Datos registrales de empresas en +140 países',
+    icono: '🏢',
+    color: '#3b82f6',
+    docsUrl: 'https://api.opencorporates.com/',
+    requiresKey: false,
+    fuentes: ['Registros mercantiles de +140 países'],
+    autoSelectRule: (result) => {
+      if (!result.hits) return { opcionIdx: 0, justificacion: 'Sin datos registrales encontrados' };
+      return { opcionIdx: 1, justificacion: `${result.hits} empresa(s) en registros — ${result.topHit?.pais?.toUpperCase()||''}` };
+    },
+    defaultOpciones: [
+      { texto: 'Sin datos registrales encontrados', valor: 1, flag: false },
+      { texto: 'Empresa verificada en registros públicos', valor: 3, flag: false }
+    ]
+  },
+
+  // ── OpenSanctions (de pago, evaluación gratuita 30 días) ────
+  opensanctions: {
+    nombre: 'OpenSanctions',
+    descripcion: '+100 fuentes de sanciones — requiere API key (trial 30 días)',
+    icono: '🔑',
+    color: '#f59e0b',
+    docsUrl: 'https://www.opensanctions.org/docs/api/',
+    requiresKey: true,
+    fuentes: ['OFAC', 'UE', 'ONU', 'Interpol', '+100 fuentes más'],
+    autoSelectRule: (result) => {
+      if (result.score >= 0.85) return { opcionIdx: 2, justificacion: `Coincidencia fuerte — score ${result.score.toFixed(2)}` };
+      if (result.score >= 0.6)  return { opcionIdx: 1, justificacion: `Coincidencia parcial — score ${result.score.toFixed(2)}` };
+      return { opcionIdx: 0, justificacion: `Sin coincidencias (score ${result.score?.toFixed(2)||'0.00'})` };
+    },
+    defaultOpciones: [
+      { texto: 'Sin coincidencias en listas de sanciones', valor: 3, flag: false },
+      { texto: 'Coincidencia parcial — requiere verificación', valor: 1, flag: false },
+      { texto: 'Coincidencia fuerte en listas de sanciones', valor: 0, flag: true }
+    ]
+  },
+
+  // ── API Personalizada ────────────────────────────────────────
+  custom: {
+    nombre: 'API Personalizada',
+    descripcion: 'Conecta cualquier API REST propia o de terceros',
+    icono: '⚙️',
+    color: '#8b5cf6',
+    docsUrl: '',
+    requiresKey: false,
+    fuentes: ['Tu fuente personalizada'],
+    autoSelectRule: () => ({ opcionIdx: 0, justificacion: 'Resultado manual' }),
+    defaultOpciones: [
+      { texto: 'Resultado satisfactorio', valor: 3, flag: false },
+      { texto: 'Resultado no satisfactorio', valor: 0, flag: true }
+    ]
+  }
+};
+
+// API keys store (en producción esto viviría en backend)
+const API_KEYS = {};
+
 function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
 function openModal(html) {
   closeModal();
@@ -740,26 +860,65 @@ function renderDashboard() {
 // ══════════════════════════════════════════════════════════════
 //  TERCEROS
 // ══════════════════════════════════════════════════════════════
-let terFilter = { search:'', riesgo:'', ambito:'', pais:'' };
+let terFilter = { search:'', riesgo:'', ambito:'', pais:'', tipo:'' };
+let terSort = { col:'nombre', dir:'asc' };
+
+function terSortBy(col) {
+  if (terSort.col === col) terSort.dir = terSort.dir === 'asc' ? 'desc' : 'asc';
+  else { terSort.col = col; terSort.dir = 'asc'; }
+  renderTerceros();
+}
 
 function renderTerceros() {
-  const terceros = state.data.terceros.filter(t => {
+  // ── filter ──
+  let terceros = state.data.terceros.filter(t => {
     const s = terFilter.search.toLowerCase();
     if (s && !t.nombre.toLowerCase().includes(s) && !(t.cif||'').toLowerCase().includes(s)) return false;
     if (terFilter.riesgo && t.riesgo !== terFilter.riesgo) return false;
     if (terFilter.ambito && !(t.ambitos||[]).includes(terFilter.ambito)) return false;
     if (terFilter.pais && t.pais !== terFilter.pais) return false;
+    if (terFilter.tipo && t.tipo !== terFilter.tipo) return false;
     return true;
   });
-  const paises = [...new Set(state.data.terceros.map(t=>t.pais).filter(Boolean))];
+
+  // ── sort ──
+  const col = terSort.col, dir = terSort.dir === 'asc' ? 1 : -1;
+  const getVal = (t) => {
+    if (col === 'nombre') return (t.nombre||'').toLowerCase();
+    if (col === 'cif') return (t.cif||'').toLowerCase();
+    if (col === 'pais') return (t.pais||'').toLowerCase();
+    if (col === 'tipo') return (t.tipo||'').toLowerCase();
+    if (col === 'responsable') return (t.responsable||'').toLowerCase();
+    if (col === 'riesgo') return ['alto','medio','bajo','en proceso','sin valorar'].indexOf(t.riesgo||'sin valorar');
+    if (col === 'fechaSiguiente') return t.fechaSiguiente || 'zzz';
+    return '';
+  };
+  terceros = [...terceros].sort((a,b) => {
+    const va = getVal(a), vb = getVal(b);
+    return va < vb ? -dir : va > vb ? dir : 0;
+  });
+
+  const paises = [...new Set(state.data.terceros.map(t=>t.pais).filter(Boolean))].sort();
+  const tipos = [...new Set(state.data.terceros.map(t=>t.tipo).filter(Boolean))].sort();
+
+  // ── sort icon helper ──
+  const si = (c) => {
+    if (terSort.col !== c) return `<span style="opacity:.25;margin-left:4px">⇅</span>`;
+    return `<span style="margin-left:4px;color:var(--accent)">${terSort.dir==='asc'?'↑':'↓'}</span>`;
+  };
+  const th = (c, label) => `<th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="terSortBy('${c}')">${label}${si(c)}</th>`;
 
   document.getElementById('content').innerHTML = `
     <div class="section-header">
       <div><div class="section-title">Maestro de Terceros</div><div class="section-sub">${terceros.length} de ${state.data.terceros.length} terceros</div></div>
       <button class="btn btn-primary" onclick="showTerceroModal(null)">${SVG.plus} Dar de Alta Tercero</button>
     </div>
-    <div class="toolbar">
-      <div class="search-bar" style="flex:1;max-width:300px;">${SVG.search}<input placeholder="Nombre o CIF..." oninput="terFilter.search=this.value;renderTerceros()" value="${terFilter.search}"></div>
+    <div class="toolbar" style="flex-wrap:wrap;gap:8px">
+      <div class="search-bar" style="flex:1;min-width:180px;max-width:280px">${SVG.search}<input placeholder="Nombre o CIF..." oninput="terFilter.search=this.value;renderTerceros()" value="${terFilter.search}"></div>
+      <select class="form-select" style="width:auto" onchange="terFilter.tipo=this.value;renderTerceros()">
+        <option value="">Todos los tipos</option>
+        ${tipos.map(tp=>`<option value="${tp}" ${terFilter.tipo===tp?'selected':''}>${tp}</option>`).join('')}
+      </select>
       <select class="form-select" style="width:auto" onchange="terFilter.riesgo=this.value;renderTerceros()">
         <option value="">Todos los riesgos</option>
         ${['sin valorar','en proceso','alto','medio','bajo'].map(r=>`<option value="${r}" ${terFilter.riesgo===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
@@ -772,11 +931,23 @@ function renderTerceros() {
         <option value="">Todos los países</option>
         ${paises.map(p=>`<option value="${p}" ${terFilter.pais===p?'selected':''}>${p}</option>`).join('')}
       </select>
+      ${(terFilter.search||terFilter.tipo||terFilter.riesgo||terFilter.ambito||terFilter.pais) ? `<button class="btn btn-ghost btn-sm" onclick="terFilter={search:'',riesgo:'',ambito:'',pais:'',tipo:''};renderTerceros()">✕ Limpiar filtros</button>` : ''}
     </div>
     <div class="card" style="padding:0;">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nombre</th><th>CIF</th><th>País</th><th>Tipo</th><th>Ámbitos</th><th>Responsable</th><th>Sig. Homologación</th><th>Riesgo</th><th>Estado Hom.</th><th>Acciones</th></tr></thead>
+          <thead><tr>
+            ${th('nombre','Nombre')}
+            ${th('cif','CIF')}
+            ${th('pais','País')}
+            ${th('tipo','Tipo')}
+            <th>Ámbitos</th>
+            ${th('responsable','Responsable')}
+            ${th('fechaSiguiente','Sig. Homologación')}
+            ${th('riesgo','Riesgo')}
+            <th>Estado Hom.</th>
+            <th>Acciones</th>
+          </tr></thead>
           <tbody>
             ${terceros.length ? terceros.map(t => {
               const d = daysUntil(t.fechaSiguiente);
@@ -857,7 +1028,16 @@ function showTerceroModal(id) {
             <label class="form-label">Tipo de Tercero</label>
             <select class="form-select" id="t-tipo" style="max-width:300px">
               <option value="">Seleccionar...</option>
-              ${['Proveedor Directo','Proveedor Indirecto','Cliente'].map(tp=>`<option value="${tp}" ${t?.tipo===tp?'selected':''}>${tp}</option>`).join('')}
+              ${(state.data.tipos||[]).map(tp => {
+                const label = [tp.nivel1, tp.nivel2, tp.nivel3].filter(Boolean).join(' › ');
+                const val = tp.nivel2 || tp.nivel1 || '';
+                return `<option value="${val}" ${t?.tipo===val?'selected':''}>${label}</option>`;
+              }).join('')}
+              ${!(state.data.tipos||[]).length ? `
+                <option value="Proveedor Directo" ${t?.tipo==='Proveedor Directo'?'selected':''}>Proveedor Directo</option>
+                <option value="Proveedor Indirecto" ${t?.tipo==='Proveedor Indirecto'?'selected':''}>Proveedor Indirecto</option>
+                <option value="Cliente" ${t?.tipo==='Cliente'?'selected':''}>Cliente</option>
+              ` : ''}
             </select>
           </div>
           <div class="form-group">
@@ -1522,13 +1702,39 @@ function renderWStep() {
   }
 
   if (W.step === 2) {
+    const hasProposal = W._importProposal;
     return `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      ${hasProposal ? `
+        <div class="ai-proposal-bar">
+          <span class="ai-proposal-badge">✨ IA</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">Propuesta generada por Claude · ${W.preguntas.length} pregunta(s) extraída(s)</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Revisa y edita antes de confirmar. Puedes añadir, eliminar o modificar cualquier pregunta.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="wClearProposal()" title="Descartar propuesta y empezar desde cero">✕ Descartar</button>
+        </div>
+      ` : `
+        <div class="import-zone" id="import-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="wHandleDrop(event)">
+          <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="wHandleFile(this.files[0])">
+          <span class="import-zone-icon">📄</span>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">Arrastra un Excel o PDF aquí</div>
+          <div style="font-size:12px;color:var(--text3)">O haz clic para seleccionar · Compatible con .xlsx, .xls, .csv, .pdf</div>
+          <div style="margin-top:12px;padding:8px 14px;background:var(--accent-glow);border-radius:var(--radius-sm);display:inline-block;font-size:11px;color:var(--accent)">
+            ✨ Claude analizará el documento y propondrá la estructura del cuestionario
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+          <hr style="flex:1;border:none;border-top:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--text3)">o crea las preguntas manualmente</span>
+          <hr style="flex:1;border:none;border-top:1px solid var(--border)">
+        </div>
+      `}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <span style="font-size:13px;color:var(--text2)">${W.preguntas.length} pregunta(s)</span>
         <button class="btn btn-secondary btn-sm" onclick="wAddQ()">${SVG.plus} Añadir Pregunta</button>
       </div>
       <div id="wqlist">${W.preguntas.map((p,i)=>renderQCard(p,i)).join('')}</div>
-      ${!W.preguntas.length?'<div class="empty-state" style="padding:30px"><p>Sin preguntas. Pulsa "Añadir Pregunta".</p></div>':''}
+      ${!W.preguntas.length ? `<div class="empty-state" style="padding:30px"><p>Sin preguntas aún. Sube un documento o pulsa "Añadir Pregunta".</p></div>` : ''}
     `;
   }
 
@@ -1628,17 +1834,26 @@ function removePaisWizard(pais) {
 
 // Question builder
 function renderQCard(p, idx) {
-  return `<div class="question-card">
+  const isApi = p.tipo === 'api_lookup';
+  const prov = isApi && p.apiConfig?.provider ? API_PROVIDERS[p.apiConfig.provider] : null;
+  // Section header — show if this pregunta has a section different from the previous one
+  const prevSeccion = idx > 0 ? (W.preguntas[idx-1]?.seccion || '') : null;
+  const thisSeccion = p.seccion || '';
+  const showSection = thisSeccion && thisSeccion !== prevSeccion;
+  return `${showSection ? `<div class="proposal-section-header">📂 ${thisSeccion}</div>` : ''}
+  <div class="question-card">
     <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px">
       <div style="color:var(--text3);cursor:grab;padding:4px">${SVG.drag}</div>
       <div class="question-num">${idx+1}</div>
       <div style="flex:1">
-        <input class="form-input" placeholder="Texto de la pregunta..." value="${(p.texto||'').replace(/"/g,'&quot;')}" oninput="W.preguntas[${idx}].texto=this.value" style="margin-bottom:8px">
+        <input class="form-input" placeholder="Texto de la pregunta..." value="${(p.texto||'').replace(/"/g,'&quot;')}" oninput="W.preguntas[${idx}].texto=this.value" style="margin-bottom:6px">
+        <input class="form-input" placeholder="Sección / categoría (opcional)..." value="${(p.seccion||'').replace(/"/g,'&quot;')}" oninput="W.preguntas[${idx}].seccion=this.value" style="margin-bottom:8px;font-size:11px;color:var(--accent);background:var(--surface3)">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select class="form-select" style="width:auto" onchange="wChangeTipo(${idx},this.value)">
             <option value="abierta" ${p.tipo==='abierta'?'selected':''}>Respuesta abierta</option>
             <option value="select_unico" ${p.tipo==='select_unico'?'selected':''}>Desplegable (única)</option>
             <option value="select_multiple" ${p.tipo==='select_multiple'?'selected':''}>Desplegable (múltiple)</option>
+            <option value="api_lookup" ${p.tipo==='api_lookup'?'selected':''}>🔌 Consulta API externa</option>
           </select>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
             <input type="checkbox" ${p.obligatoria?'checked':''} onchange="W.preguntas[${idx}].obligatoria=this.checked"> Obligatoria
@@ -1648,7 +1863,8 @@ function renderQCard(p, idx) {
       </div>
       <button class="btn btn-danger btn-icon btn-sm" onclick="wRemoveQ(${idx})">${SVG.trash}</button>
     </div>
-    ${p.tipo!=='abierta' ? `
+
+    ${isApi ? renderApiQConfig(p, idx) : p.tipo!=='abierta' ? `
       <div style="padding-left:44px">
         <div style="display:flex;font-size:11px;color:var(--text3);gap:8px;padding:0 4px;margin-bottom:6px">
           <span style="flex:1">Opción</span><span style="width:64px;text-align:center">Valor</span><span style="width:28px;text-align:center">🚩</span><span style="width:28px"></span>
@@ -1667,13 +1883,349 @@ function renderQCard(p, idx) {
   </div>`;
 }
 
+function renderApiQConfig(p, idx) {
+  const cfg = p.apiConfig || {};
+  const prov = cfg.provider ? API_PROVIDERS[cfg.provider] : null;
+  return `<div style="padding-left:44px">
+    <!-- Selector de proveedor -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      ${Object.entries(API_PROVIDERS).map(([key, pr]) => `
+        <div class="api-provider-card ${cfg.provider===key?'selected':''}" onclick="wSetApiProvider(${idx},'${key}')">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span style="font-size:16px">${pr.icono}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${pr.nombre}</span>
+            ${!pr.requiresKey && key!=='custom' ? '<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,.15);color:var(--green);font-weight:600">GRATIS</span>' : ''}
+            ${pr.requiresKey ? '<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--amber-soft);color:var(--amber)">KEY</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.3">${pr.descripcion}</div>
+          ${pr.fuentes?.length ? `<div style="font-size:10px;color:var(--text3);margin-top:4px;opacity:.7">${pr.fuentes.slice(0,2).join(' · ')}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+
+    ${prov ? `
+      <!-- Configuración del proveedor seleccionado -->
+      <div style="background:var(--surface3);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:12px;font-weight:600;color:${prov.color}">${prov.icono} ${prov.nombre}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${!prov.requiresKey && cfg.provider!=='custom' ? '<span style="font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(16,185,129,.15);color:var(--green);font-weight:600">✓ GRATIS · SIN REGISTRO</span>' : ''}
+            ${prov.docsUrl ? `<a href="${prov.docsUrl}" target="_blank" style="font-size:11px;color:var(--accent)">Docs ↗</a>` : ''}
+          </div>
+        </div>
+        ${prov.fuentes?.length ? `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Fuentes: <strong style="color:var(--text2)">${prov.fuentes.join(' · ')}</strong></div>` : ''}
+
+        ${prov.requiresKey ? `
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">API Key</label>
+            <input class="form-input" type="password" placeholder="Pega tu API key aquí..."
+              value="${cfg.apiKey||''}"
+              oninput="W.preguntas[${idx}].apiConfig.apiKey=this.value"
+              style="font-family:monospace;font-size:12px">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">⚠️ Fase 1: la key se guarda en el cuestionario. En producción migrará a backend seguro.</div>
+          </div>
+        ` : ''}
+
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Campos del tercero a enviar</label>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${[['nombre','Nombre comercial'],['cif','CIF / NIF'],['pais','País'],['denominacion','Denominación social']].map(([field, label]) => `
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
+                <input type="checkbox" ${(cfg.inputFields||['nombre','pais']).includes(field)?'checked':''}
+                  onchange="wToggleApiField(${idx},'${field}',this.checked)">
+                ${label} <code style="font-size:10px;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--accent)">${field}</code>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" ${cfg.requireConfirmation!==false?'checked':''}
+              onchange="W.preguntas[${idx}].apiConfig.requireConfirmation=this.checked">
+            <span style="color:var(--text2)">Requiere confirmación humana del resultado</span>
+          </label>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;padding-left:20px">El gestor debe revisar y confirmar antes de continuar, aunque haya resultado automático.</div>
+        </div>
+      </div>
+
+      <!-- Opciones de respuesta (igual que select_unico) -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Opciones de respuesta (asignadas automáticamente por la API)</span>
+          <button class="btn btn-ghost btn-sm" onclick="wResetApiOpciones(${idx})">↺ Restaurar por defecto</button>
+        </div>
+        <div style="display:flex;font-size:11px;color:var(--text3);gap:8px;padding:0 4px;margin-bottom:6px">
+          <span style="flex:1">Opción</span><span style="width:64px;text-align:center">Valor</span><span style="width:28px;text-align:center">🚩</span><span style="width:28px"></span>
+        </div>
+        ${(p.opciones||[]).map((op,oi)=>`
+          <div class="option-row">
+            <input class="option-input" value="${(op.texto||'').replace(/"/g,'&quot;')}" placeholder="Texto de la opción..." oninput="W.preguntas[${idx}].opciones[${oi}].texto=this.value">
+            <input class="option-score" type="number" step="0.5" value="${op.valor??0}" oninput="W.preguntas[${idx}].opciones[${oi}].valor=parseFloat(this.value)||0">
+            <div class="flag-btn ${op.flag?'on':''}" onclick="wToggleFlag(${idx},${oi})">🚩</div>
+            <button class="btn btn-ghost btn-icon" style="width:28px;height:28px;padding:0" onclick="wRemoveOp(${idx},${oi})">${SVG.x}</button>
+          </div>
+        `).join('')}
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="wAddOp(${idx})">${SVG.plus} Añadir opción</button>
+      </div>
+    ` : '<div style="font-size:12px;color:var(--text3);font-style:italic">Selecciona un proveedor de API arriba.</div>'}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  IMPORT — Excel / PDF → Claude API → Propuesta editable
+// ══════════════════════════════════════════════════════════════
+
+function wHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-zone')?.classList.remove('drag-over');
+  const file = e.dataTransfer?.files?.[0];
+  if (file) wHandleFile(file);
+}
+
+async function wHandleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['xlsx','xls','csv','pdf'];
+  if (!allowed.includes(ext)) { notify('Formato no soportado. Usa .xlsx, .xls, .csv o .pdf', 'error'); return; }
+
+  // Show analyzing overlay
+  document.getElementById('wbody').innerHTML = `
+    <div class="analyzing-overlay">
+      <div class="analyzing-spinner"></div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Analizando documento…</div>
+      <div style="font-size:12px;color:var(--text3)">Claude está leyendo el contenido y generando la propuesta de cuestionario</div>
+      <div style="margin-top:16px;font-size:11px;color:var(--text3);font-style:italic" id="import-status">Leyendo archivo…</div>
+    </div>`;
+
+  try {
+    let contentForClaude;
+    if (ext === 'pdf') {
+      contentForClaude = await readPdfAsBase64(file);
+      setImportStatus('Enviando PDF a Claude…');
+    } else {
+      contentForClaude = await readExcelAsText(file);
+      setImportStatus('Enviando contenido a Claude…');
+    }
+
+    setImportStatus('Claude analizando estructura del formulario…');
+    const propuesta = await analyzeWithClaude(contentForClaude, ext === 'pdf', file.name);
+
+    // Apply proposal to W
+    W._importProposal = { fileName: file.name, totalFound: propuesta.length };
+    W.preguntas = propuesta;
+
+    // Auto-suggest nombre and tipo if empty
+    if (!W.nombre && propuesta._nombre) W.nombre = propuesta._nombre;
+
+    notify(`✅ ${propuesta.length} preguntas extraídas de "${file.name}"`);
+    wRefreshStep();
+
+  } catch(e) {
+    console.error('Import error:', e);
+    notify(`Error al analizar: ${e.message}`, 'error');
+    wRefreshStep(); // restore step 2
+  }
+}
+
+function setImportStatus(msg) {
+  const el = document.getElementById('import-status');
+  if (el) el.textContent = msg;
+}
+
+async function readExcelAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (!window.XLSX) throw new Error('SheetJS no cargado. Comprueba conexión a internet.');
+        const wb = XLSX.read(e.target.result, { type:'binary' });
+        let text = '';
+        wb.SheetNames.forEach(name => {
+          const ws = wb.Sheets[name];
+          // Convert to CSV for readability
+          const csv = XLSX.utils.sheet_to_csv(ws, { blankrows:false });
+          if (csv.trim()) text += `\n=== Hoja: ${name} ===\n${csv}`;
+        });
+        resolve(text.trim());
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsBinaryString(file);
+  });
+}
+
+async function readPdfAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result.split(',')[1]); // base64 only
+    reader.onerror = () => reject(new Error('No se pudo leer el PDF'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeWithClaude(content, isPdf, fileName) {
+  const systemPrompt = `Eres un experto en gestión de riesgos de terceros (TPRM) y en diseño de cuestionarios de due diligence.
+Tu tarea es analizar un documento (Excel, formulario impreso o PDF) y extraer todas las preguntas de un cuestionario de evaluación de proveedores/terceros.
+
+IMPORTANTE: Responde ÚNICAMENTE con un array JSON válido. Sin texto adicional, sin markdown, sin explicaciones.
+
+Cada pregunta del array debe tener exactamente este formato:
+{
+  "id": "q_[número único]",
+  "texto": "Texto completo de la pregunta",
+  "seccion": "Nombre de la sección o categoría (si existe, si no pon '')",
+  "tipo": "select_unico" o "abierta",
+  "obligatoria": true o false,
+  "soloCompleta": false,
+  "opciones": [
+    { "texto": "Texto de la opción", "valor": [número 0-3], "flag": false }
+  ]
+}
+
+REGLAS para asignar tipo:
+- Si la pregunta tiene opciones de respuesta definidas (Sí/No, escala, lista) → "select_unico"
+- Si es una pregunta abierta o de texto libre → "abierta" (opciones vacías [])
+
+REGLAS para asignar valor (puntuación) a las opciones:
+- Respuesta más favorable (cumple completamente, Sí con evidencia, política documentada) → valor: 3
+- Respuesta parcial (cumple parcialmente, En proceso) → valor: 2
+- Respuesta menos favorable pero sin riesgo crítico → valor: 1
+- Respuesta de riesgo alto (No, No existe, Nunca) → valor: 0
+
+REGLAS para flag:
+- flag: true SOLO en opciones que representan riesgo crítico o incumplimiento grave (No existe, Nunca, Sin política, etc.)
+- El resto: flag: false
+
+REGLAS para obligatoria:
+- Si en el documento aparece como obligatoria o tiene asterisco → true
+- Si no hay indicación → true por defecto
+
+Si encuentras secciones o categorías en el documento, inclúyelas en el campo "seccion".
+Si hay preguntas de Sí/No sin puntuación definida, usa: Sí → valor:3, No → valor:0 flag:true.
+Si hay escalas (1-5, Siempre/A veces/Nunca), mapéalas proporcionalmente a 0-3.
+Extrae TODAS las preguntas que encuentres, incluso si el formato es irregular.`;
+
+  // PDFs: Mistral no soporta PDF nativo en browser → convertimos a mensaje de texto indicándolo
+  // Para Excel/CSV: enviamos el contenido como texto directamente
+  const userContent = isPdf
+    ? `El usuario ha subido un PDF llamado "${fileName}". No puedo enviarte el PDF directamente, pero extrae preguntas del siguiente texto extraído del PDF:\n\n${content}`
+    : `Analiza este contenido de Excel/CSV y extrae todas las preguntas del cuestionario con sus opciones de respuesta. Archivo: ${fileName}\n\n${content.slice(0, 12000)}`;
+
+  const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getMistralKey()}`
+    },
+    body: JSON.stringify({
+      model: 'mistral-large-latest',
+      temperature: 0.1,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ]
+    })
+  });
+
+  if (resp.status === 401) throw new Error('API key de Mistral inválida. Configúrala en Ajustes → Integraciones.');
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err?.message || `Mistral API error ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const rawText = data.choices?.[0]?.message?.content?.trim() || '';
+
+  const clean = rawText.replace(/^```json?\s*/,'').replace(/\s*```$/,'').trim();
+  let preguntas;
+  try {
+    preguntas = JSON.parse(clean);
+  } catch(e) {
+    throw new Error('Mistral devolvió una respuesta que no se pudo parsear. Intenta con un documento más simple.');
+  }
+
+  if (!Array.isArray(preguntas)) throw new Error('La respuesta no es un array de preguntas.');
+
+  return preguntas.map((p) => ({
+    id: p.id || genId(),
+    texto: p.texto || '',
+    seccion: p.seccion || '',
+    tipo: p.tipo || 'select_unico',
+    obligatoria: p.obligatoria !== false,
+    soloCompleta: false,
+    opciones: (p.opciones || []).map(o => ({
+      texto: o.texto || '',
+      valor: typeof o.valor === 'number' ? o.valor : 0,
+      flag: !!o.flag
+    }))
+  }));
+}
+
+function getMistralKey() {
+  // Busca en config guardada, si no pide al usuario
+  const saved = state.data.config?.mistralKey || localStorage.getItem('mistral_api_key') || '';
+  if (!saved) {
+    const key = prompt('Introduce tu API key de Mistral AI:\n(Consíguela en console.mistral.ai → API Keys)');
+    if (key) {
+      localStorage.setItem('mistral_api_key', key.trim());
+      return key.trim();
+    }
+    throw new Error('Se necesita API key de Mistral para analizar documentos.');
+  }
+  return saved;
+}
+
+function wClearProposal() {
+  W._importProposal = null;
+  W.preguntas = [];
+  wRefreshStep();
+}
+
+function wRefreshStep() {
+  document.getElementById('wbody').innerHTML = renderWStep();
+}
+
 function wRefreshQ() { document.getElementById('wqlist').innerHTML = W.preguntas.map((p,i)=>renderQCard(p,i)).join(''); }
-function wAddQ() { W.preguntas.push({id:genId(),texto:'',tipo:'select_unico',obligatoria:false,opciones:[{texto:'',valor:0,flag:false}]}); wRefreshQ(); }
+function wAddQ() { W.preguntas.push({id:genId(),texto:'',tipo:'select_unico',obligatoria:false,soloCompleta:false,opciones:[{texto:'',valor:0,flag:false}]}); wRefreshQ(); }
 function wRemoveQ(idx) { W.preguntas.splice(idx,1); wRefreshQ(); }
-function wChangeTipo(idx,tipo) { W.preguntas[idx].tipo=tipo; if(tipo!=='abierta'&&!W.preguntas[idx].opciones?.length) W.preguntas[idx].opciones=[{texto:'',valor:0,flag:false}]; wRefreshQ(); }
 function wAddOp(idx) { W.preguntas[idx].opciones=W.preguntas[idx].opciones||[]; W.preguntas[idx].opciones.push({texto:'',valor:0,flag:false}); wRefreshQ(); }
 function wRemoveOp(idx,oi) { W.preguntas[idx].opciones.splice(oi,1); wRefreshQ(); }
 function wToggleFlag(idx,oi) { W.preguntas[idx].opciones[oi].flag=!W.preguntas[idx].opciones[oi].flag; wRefreshQ(); }
+
+function wChangeTipo(idx, tipo) {
+  W.preguntas[idx].tipo = tipo;
+  if (tipo === 'api_lookup') {
+    if (!W.preguntas[idx].apiConfig) W.preguntas[idx].apiConfig = { provider:'', apiKey:'', inputFields:['nombre','pais'], requireConfirmation:true };
+    if (!W.preguntas[idx].opciones?.length) W.preguntas[idx].opciones = API_PROVIDERS.sanctionsnetwork.defaultOpciones.map(o=>({...o}));
+  } else if (tipo !== 'abierta' && !W.preguntas[idx].opciones?.length) {
+    W.preguntas[idx].opciones = [{texto:'',valor:0,flag:false}];
+  }
+  wRefreshQ();
+}
+
+function wSetApiProvider(idx, provider) {
+  if (!W.preguntas[idx].apiConfig) W.preguntas[idx].apiConfig = {};
+  W.preguntas[idx].apiConfig.provider = provider;
+  W.preguntas[idx].opciones = API_PROVIDERS[provider].defaultOpciones.map(o=>({...o}));
+  wRefreshQ();
+}
+
+function wToggleApiField(idx, field, checked) {
+  if (!W.preguntas[idx].apiConfig) W.preguntas[idx].apiConfig = {};
+  let fields = W.preguntas[idx].apiConfig.inputFields || ['nombre','pais'];
+  if (checked) { if (!fields.includes(field)) fields.push(field); }
+  else { fields = fields.filter(f => f !== field); }
+  W.preguntas[idx].apiConfig.inputFields = fields;
+}
+
+function wResetApiOpciones(idx) {
+  const prov = W.preguntas[idx].apiConfig?.provider;
+  if (prov && API_PROVIDERS[prov]) {
+    W.preguntas[idx].opciones = API_PROVIDERS[prov].defaultOpciones.map(o=>({...o}));
+    wRefreshQ();
+  }
+}
 
 function wCollectStep() {
   // Collect current step data into W before navigating
@@ -1718,7 +2270,7 @@ function wNav(dir) {
   wCollectStep();
   if (dir > 0 && !wValidateStep()) return;
   W.step = Math.max(1, Math.min(4, W.step+dir));
-  renderWizardModal();
+  wRefreshStep();
 }
 
 async function wSave() {
@@ -1775,7 +2327,9 @@ function getLastHom(tid) { return state.data.homologaciones.filter(h => h.tercer
 function calcScore(preguntas, respuestas) {
   let score = 0, hasFlag = false;
   preguntas.forEach(p => {
-    const resp = respuestas[p.id];
+    // api_lookup responses are objects {respuesta, _apiResult, ...}
+    const rawResp = respuestas[p.id];
+    const resp = (rawResp && typeof rawResp === 'object') ? rawResp.respuesta : rawResp;
     if (resp !== undefined && resp !== '') {
       const op = (p.opciones||[]).find(o => o.texto === resp);
       if (op) { score += op.valor||0; if (op.flag) hasFlag = true; }
@@ -1935,20 +2489,127 @@ function hwFooter() {
 }
 
 function renderQs(cq, respuestas, prefix) {
-  return (cq.preguntas||[]).map((p, i) => `<div class="questionnaire-question">
-    <div class="question-text">${i+1}. ${p.texto}${p.obligatoria?'<span style="color:var(--red);margin-left:4px">*</span>':''}${p.soloCompleta?'<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;margin-left:8px;font-size:10px">Solo completa</span>':''}</div>
-    ${p.tipo==='abierta'
-      ? `<textarea class="form-textarea" id="${prefix}-${p.id}" rows="2" placeholder="Respuesta libre...">${respuestas[p.id]||''}</textarea>`
-      : `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
-          const isSel = respuestas[p.id] === op.texto;
-          return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:pointer;transition:all .15s" onclick="qSel(this,'${prefix}','${p.id}')">
-            <input type="radio" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="pointer-events:none;accent-color:var(--accent)">
-            <span style="flex:1">${op.texto}</span>
-            ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
-            ${op.flag?`<span style="color:var(--red);margin-left:4px">🚩</span>`:''}
-          </label>`;
-        }).join('')}</div>`}
-  </div>`).join('');
+  return (cq.preguntas||[]).map((p, i) => {
+    const apiResp = respuestas[p.id];
+    const isApi = p.tipo === 'api_lookup';
+    const prov = isApi && p.apiConfig?.provider ? API_PROVIDERS[p.apiConfig.provider] : null;
+    return `<div class="questionnaire-question" id="qq-${prefix}-${p.id}">
+      <div class="question-text">${i+1}. ${p.texto}${p.obligatoria?'<span style="color:var(--red);margin-left:4px">*</span>':''}${isApi?`<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;margin-left:8px;font-size:10px">🔌 ${prov?.nombre||'API'}</span>`:p.soloCompleta?'<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;margin-left:8px;font-size:10px">Solo completa</span>':''}</div>
+      ${isApi ? renderApiLookupWidget(p, prefix, apiResp) : p.tipo==='abierta'
+        ? `<textarea class="form-textarea" id="${prefix}-${p.id}" rows="2" placeholder="Respuesta libre...">${apiResp||''}</textarea>`
+        : `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
+            const isSel = apiResp === op.texto;
+            return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:pointer;transition:all .15s" onclick="qSel(this,'${prefix}','${p.id}')">
+              <input type="radio" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="pointer-events:none;accent-color:var(--accent)">
+              <span style="flex:1">${op.texto}</span>
+              ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+              ${op.flag?`<span style="color:var(--red);margin-left:4px">🚩</span>`:''}
+            </label>`;
+          }).join('')}</div>`}
+    </div>`;
+  }).join('');
+}
+
+function renderApiLookupWidget(p, prefix, savedResp) {
+  const cfg = p.apiConfig || {};
+  const prov = cfg.provider ? API_PROVIDERS[cfg.provider] : null;
+  if (!prov) return `<div class="api-lookup-box"><span style="color:var(--text3);font-size:12px">Sin proveedor API configurado.</span></div>`;
+
+  const hasResult = savedResp?._apiResult;
+  const confirmed = savedResp?._confirmed;
+  const autoSel = savedResp?._autoSel;
+
+  return `<div class="api-lookup-box" id="api-box-${prefix}-${p.id}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:${hasResult?'12px':'0'}">
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--text2)">Proveedor: <strong style="color:${prov.color}">${prov.icono} ${prov.nombre}</strong>
+          ${!prov.requiresKey ? '<span style="font-size:10px;margin-left:6px;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,.15);color:var(--green)">GRATIS</span>' : ''}
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Campos: ${(cfg.inputFields||['nombre','pais']).join(', ')}${prov.fuentes?.length ? ` · Fuentes: ${prov.fuentes.slice(0,2).join(', ')}` : ''}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" id="api-btn-${prefix}-${p.id}"
+        onclick="runApiLookup('${prefix}','${p.id}',${JSON.stringify(cfg).replace(/'/g,"&#39;")})"
+        ${confirmed?'disabled':''}>
+        ${hasResult?'↺ Volver a consultar':'🔌 Consultar API'}
+      </button>
+    </div>
+
+    ${hasResult ? `
+      <div id="api-result-${prefix}-${p.id}">
+        ${renderApiResult(savedResp._apiResult, prov, autoSel)}
+      </div>
+      <!-- Opciones de respuesta -->
+      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span>${confirmed?'✅ Respuesta confirmada':'Confirma la respuesta:'}</span>
+          ${autoSel!==undefined?`<span style="font-size:11px;color:var(--text3)">Autoseleccionada opción ${autoSel+1}</span>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${(p.opciones||[]).map((op,oi) => {
+            const isSel = savedResp?.respuesta === op.texto;
+            return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:${confirmed?'not-allowed':'pointer'};opacity:${confirmed?'0.8':'1'};transition:all .15s"
+              onclick="${confirmed?'':'qSelApi(this,\''+prefix+'\',\''+p.id+'\')'}">
+              <input type="radio" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="pointer-events:none;accent-color:var(--accent)" ${confirmed?'disabled':''}>
+              <span style="flex:1">${op.texto}</span>
+              ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+              ${op.flag?`<span style="color:var(--red);margin-left:4px">🚩</span>`:''}
+              ${oi===autoSel?'<span style="font-size:10px;background:rgba(139,92,246,.15);color:#8b5cf6;padding:1px 6px;border-radius:3px">Auto</span>':''}
+            </label>`;
+          }).join('')}
+        </div>
+        ${!confirmed && savedResp?.respuesta ? `
+          <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="confirmApiResp('${prefix}','${p.id}')">
+            ✅ Confirmar esta respuesta
+          </button>
+        ` : ''}
+        ${confirmed ? `<div style="font-size:11px;color:var(--green);margin-top:8px">✅ Confirmado — respuesta bloqueada para auditoría</div>` : ''}
+      </div>
+    ` : `<div style="font-size:11px;color:var(--text3);margin-top:8px">Pulsa "Consultar API" para obtener el resultado automático y luego confirmar.</div>`}
+  </div>`;
+}
+
+function renderApiResult(result, prov, autoSel) {
+  if (!result) return '';
+  const hasHit = result.hits > 0;
+  const score = result.topHit?.similarityScore ?? result.topHit?.score ?? result.score ?? 0;
+  const cls = hasHit ? (autoSel >= 2 ? 'api-result-hit' : 'api-result-partial') : 'api-result-clean';
+  const icon = hasHit ? (autoSel >= 2 ? '🚨' : '⚠️') : '✅';
+  const scoreColor = score >= 0.85 ? 'var(--red)' : score >= 0.6 ? 'var(--amber)' : 'var(--green)';
+
+  return `<div class="${cls}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:600;margin-bottom:6px">${icon} ${hasHit ? `${result.hits} coincidencia(s) encontrada(s)` : 'Sin coincidencias'}</div>
+
+        ${result.fuentes?.length ? `
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+            ${result.fuentes.map(f => `<span style="font-size:10px;padding:1px 7px;border-radius:3px;background:rgba(0,0,0,.3);color:var(--text2)">${f}</span>`).join('')}
+          </div>` : ''}
+
+        ${result.topHit ? `
+          <div style="padding:8px 10px;background:rgba(0,0,0,.2);border-radius:var(--radius-sm)">
+            <div style="font-weight:500;font-size:13px">${result.topHit.nombre||'—'}</div>
+            ${result.topHit.source ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">📋 ${result.topHit.source}</div>` : ''}
+            ${result.topHit.datasets ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Fuentes: ${result.topHit.datasets}</div>` : ''}
+            ${result.topHit.entityType && result.topHit.entityType !== '—' ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Tipo: ${result.topHit.entityType}</div>` : ''}
+            ${result.topHit.country && result.topHit.country !== '—' ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">País: ${result.topHit.country}</div>` : ''}
+            ${result.topHit.aliases?.length ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Alias: ${result.topHit.aliases.join(', ')}</div>` : ''}
+            ${result.topHit.numero ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">N.º registro: ${result.topHit.numero}</div>` : ''}
+            ${result.topHit.estado ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Estado: ${result.topHit.estado}</div>` : ''}
+            ${result.topHit.url ? `<a href="${result.topHit.url}" target="_blank" style="color:var(--accent);font-size:11px;margin-top:4px;display:block">Ver ficha completa ↗</a>` : ''}
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:26px;font-weight:800;font-family:'Syne',sans-serif;color:${scoreColor};line-height:1">${(score*100).toFixed(0)}<span style="font-size:12px;font-weight:400">%</span></div>
+        <div style="font-size:10px;color:var(--text3)">similitud</div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px">
+      Consultado: ${new Date().toLocaleString('es-ES')} · Proveedor: ${prov.nombre}
+    </div>
+  </div>`;
 }
 
 function qSel(labelEl, prefix, qId) {
@@ -1966,21 +2627,314 @@ function qSel(labelEl, prefix, qId) {
   const inp = labelEl.querySelector('input'); if (inp) inp.checked = true;
 }
 
+function qSelApi(labelEl, prefix, qId) {
+  // Same as qSel but stores into HW respuestas object too
+  qSel(labelEl, prefix, qId);
+  const val = labelEl.querySelector('input')?.value;
+  if (!val) return;
+  // Update HW respuestas for this question
+  const hom = HW.hom;
+  if (!hom) return;
+  const faseMap = { 'hw-sc': 'scopeCheck', 'hw-rs': 'riskScoring', 'hw-dd': 'dueDiligence' };
+  const fase = Object.keys(faseMap).find(k => prefix.startsWith(k));
+  if (fase === 'hw-dd') {
+    const dd = hom.dueDiligence;
+    const cuests = getDDCuestionarios(HW.tercero);
+    const cq = cuests[dd.cuestionarioActual||0];
+    if (!dd.respuestasPorCuestionario[cq.id]) dd.respuestasPorCuestionario[cq.id] = {};
+    const existing = dd.respuestasPorCuestionario[cq.id][qId] || {};
+    dd.respuestasPorCuestionario[cq.id][qId] = { ...existing, respuesta: val };
+  }
+}
+
+function confirmApiResp(prefix, qId) {
+  // Mark the api response as confirmed
+  const hom = HW.hom;
+  if (!hom) return;
+  const val = document.querySelector(`input[name="${prefix}-${qId}"]:checked`)?.value;
+  if (!val) { notify('Selecciona una respuesta antes de confirmar', 'error'); return; }
+
+  // Find and update in HW
+  const fase = prefix.startsWith('hw-dd') ? 'dd' : prefix.startsWith('hw-sc') ? 'sc' : 'rs';
+  if (fase === 'dd') {
+    const dd = hom.dueDiligence;
+    const cuests = getDDCuestionarios(HW.tercero);
+    const cq = cuests[dd.cuestionarioActual||0];
+    if (!dd.respuestasPorCuestionario[cq.id]) dd.respuestasPorCuestionario[cq.id] = {};
+    const existing = dd.respuestasPorCuestionario[cq.id][qId] || {};
+    dd.respuestasPorCuestionario[cq.id][qId] = { ...existing, respuesta: val, _confirmed: true };
+  }
+
+  // Re-render just this widget
+  const box = document.getElementById(`api-box-${prefix}-${qId}`);
+  const qq = document.getElementById(`qq-${prefix}-${qId}`);
+  // Find the question def
+  const allCuests = [...state.data.cuestionarios];
+  let pregunta = null;
+  for (const cq of allCuests) {
+    pregunta = (cq.preguntas||[]).find(p => p.id === qId);
+    if (pregunta) break;
+  }
+  if (pregunta && box) {
+    // Get current saved resp
+    const savedResp = fase === 'dd' ? (hom.dueDiligence.respuestasPorCuestionario[getDDCuestionarios(HW.tercero)[hom.dueDiligence.cuestionarioActual||0].id]?.[qId]) : null;
+    box.outerHTML = renderApiLookupWidget(pregunta, prefix, savedResp).replace('<div class="api-lookup-box"', `<div class="api-lookup-box" id="api-box-${prefix}-${qId}"`);
+  }
+  notify('✅ Respuesta confirmada y bloqueada');
+}
+
+async function runApiLookup(prefix, qId, cfg) {
+  const btn = document.getElementById(`api-btn-${prefix}-${qId}`);
+  const resultDiv = document.getElementById(`api-result-${prefix}-${qId}`);
+  const prov = cfg.provider ? API_PROVIDERS[cfg.provider] : null;
+  if (!prov) { notify('Sin proveedor configurado', 'error'); return; }
+
+  // Update button to loading state
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="api-spinning">⟳</span> Consultando...'; }
+
+  try {
+    const tercero = HW.tercero || {};
+    let result;
+
+    if (cfg.provider === 'sanctionsnetwork') {
+      result = await callSanctionsNetwork(tercero, cfg);
+    } else if (cfg.provider === 'opencorporates') {
+      result = await callOpenCorporates(tercero, cfg);
+    } else if (cfg.provider === 'opensanctions') {
+      result = await callOpenSanctions(tercero, cfg);
+    } else {
+      throw new Error('Proveedor no implementado');
+    }
+
+    // Auto-select option
+    const autoSel = prov.autoSelectRule(result);
+    const autoOpIdx = autoSel.opcionIdx;
+
+    // Find the question to get its pregunta definition
+    const allPreguntas = state.data.cuestionarios.flatMap(c => c.preguntas||[]);
+    const pregunta = allPreguntas.find(p => p.id === qId);
+    const autoOpTexto = pregunta?.opciones?.[autoOpIdx]?.texto || '';
+
+    // Store in HW respuestas
+    const savedData = { respuesta: autoOpTexto, _apiResult: result, _autoSel: autoOpIdx, _confirmed: false, _justificacion: autoSel.justificacion };
+    storeTempApiResp(prefix, qId, savedData);
+
+    // Re-render the question widget
+    const qq = document.getElementById(`qq-${prefix}-${qId}`);
+    if (qq && pregunta) {
+      qq.innerHTML = `<div class="question-text">${pregunta.texto}${pregunta.obligatoria?'<span style="color:var(--red);margin-left:4px">*</span>':''}<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;margin-left:8px;font-size:10px">🔌 ${prov.nombre}</span></div>` + renderApiLookupWidget(pregunta, prefix, savedData);
+      // Auto-check the radio
+      const radio = qq.querySelector(`input[name="${prefix}-${qId}"][value="${autoOpTexto.replace(/"/g,'&quot;')}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    notify(`✅ ${prov.nombre}: ${autoSel.justificacion}`);
+  } catch(e) {
+    console.error('API lookup error:', e);
+    if (btn) { btn.disabled = false; btn.innerHTML = '↺ Reintentar'; }
+    notify(`Error consultando ${prov.nombre}: ${e.message}`, 'error');
+  }
+}
+
+function storeTempApiResp(prefix, qId, data) {
+  // Store temporarily in HW so collectQs can pick it up
+  if (!HW._apiResps) HW._apiResps = {};
+  HW._apiResps[`${prefix}-${qId}`] = data;
+}
+
+// ──────────────────────────────────────────────────────────────
+//  API CALL IMPLEMENTATIONS
+// ──────────────────────────────────────────────────────────────
+
+async function callSanctionsNetwork(tercero, cfg) {
+  // sanctions.network — completamente gratuito, sin key, sin registro
+  // Cubre: OFAC SDN + UN Security Council + EU Financial Sanctions File
+  // Búsqueda fuzzy por similitud trigrama en nombres
+  // Base URL: https://api.sanctions.network
+  const nombre = encodeURIComponent(tercero.nombre || '');
+  const url = `https://api.sanctions.network/rpc/search_sanctions?name=${nombre}&limit=10`;
+
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+  } catch(e) {
+    // CORS bloqueado — ocurre cuando se sirve desde file:// o ciertos entornos
+    throw new Error('CORS bloqueado. Sirve la app desde un servidor HTTP (npx serve .) para usar esta API.');
+  }
+
+  if (!resp.ok) {
+    throw new Error(`sanctions.network devolvió ${resp.status}. Comprueba conexión.`);
+  }
+
+  const data = await resp.json();
+  // Respuesta: array de objetos con campos: names[], source, entity_type, addresses[], etc.
+  // "source" puede ser: "ofac", "unsc", "eu"
+  const hits = Array.isArray(data) ? data : [];
+
+  // Calcular similitud aproximada comparando nombre buscado con nombres encontrados
+  const nombreLower = (tercero.nombre || '').toLowerCase();
+  const scored = hits.map(h => {
+    const allNames = (h.names || []).map(n => n.toLowerCase());
+    const bestMatch = allNames.reduce((best, n) => {
+      const sim = stringSimilarity(nombreLower, n);
+      return sim > best ? sim : best;
+    }, 0);
+    return { ...h, similarityScore: bestMatch };
+  }).sort((a, b) => b.similarityScore - a.similarityScore);
+
+  const topHit = scored[0];
+  const sourceLabel = { ofac: 'OFAC (USA)', unsc: 'ONU — Security Council', eu: 'UE — Financial Sanctions' };
+
+  return {
+    hits: hits.length,
+    score: topHit?.similarityScore || 0,
+    fuentes: [...new Set(hits.map(h => sourceLabel[h.source] || h.source))],
+    topHit: topHit ? {
+      nombre: topHit.names?.[0] || '—',
+      source: sourceLabel[topHit.source] || topHit.source,
+      similarityScore: topHit.similarityScore,
+      entityType: topHit.entity_type || '—',
+      country: (topHit.addresses || [])[0]?.country || '—',
+      aliases: (topHit.names || []).slice(1, 4),
+      url: `https://sanctions.network/#${encodeURIComponent(topHit.names?.[0] || '')}`
+    } : null,
+    raw: data
+  };
+}
+
+async function callOpenCorporates(tercero, cfg) {
+  // OpenCorporates — datos registrales públicos, ~10 req/día sin key
+  const nombre = encodeURIComponent(tercero.nombre || '');
+  const pais = tercero.pais ? `&jurisdiction_code=${tercero.pais.slice(0,2).toLowerCase()}` : '';
+  const url = `https://api.opencorporates.com/v0.4/companies/search?q=${nombre}&format=json${pais}`;
+
+  let resp;
+  try {
+    resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  } catch(e) {
+    throw new Error('CORS bloqueado. Sirve la app desde un servidor HTTP.');
+  }
+
+  if (resp.status === 429) throw new Error('Límite de OpenCorporates alcanzado. Espera unos minutos o usa una API key.');
+  if (!resp.ok) throw new Error(`OpenCorporates devolvió ${resp.status}`);
+
+  const data = await resp.json();
+  const companies = (data?.results?.companies || []).map(c => c.company);
+  const best = companies[0];
+
+  return {
+    hits: companies.length,
+    score: best ? stringSimilarity((tercero.nombre||'').toLowerCase(), (best.name||'').toLowerCase()) : 0,
+    topHit: best ? {
+      nombre: best.name,
+      pais: best.jurisdiction_code?.toUpperCase(),
+      numero: best.company_number,
+      estado: best.current_status,
+      tipo: best.company_type,
+      fechaConstitucion: best.incorporation_date,
+      url: best.opencorporates_url
+    } : null,
+    raw: data
+  };
+}
+
+async function callOpenSanctions(tercero, cfg) {
+  // OpenSanctions — requiere API key (trial 30 días gratis en opensanctions.org)
+  const apiKey = cfg.apiKey || '';
+  if (!apiKey) throw new Error('OpenSanctions requiere API key. Consíguela en opensanctions.org/api (trial 30 días gratuito).');
+
+  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `ApiKey ${apiKey}` };
+  const body = JSON.stringify({
+    queries: {
+      q1: {
+        schema: 'Company',
+        properties: {
+          name: [tercero.nombre || ''],
+          country: [tercero.pais ? tercero.pais.slice(0,2).toUpperCase() : ''],
+          ...(tercero.cif ? { registrationNumber: [tercero.cif] } : {})
+        }
+      }
+    }
+  });
+
+  let resp;
+  try {
+    resp = await fetch('https://api.opensanctions.org/match/default?algorithm=best&limit=5', { method:'POST', headers, body });
+  } catch(e) {
+    throw new Error('No se pudo conectar con OpenSanctions. Comprueba la API key y la conexión.');
+  }
+
+  if (resp.status === 401) throw new Error('API key inválida o expirada.');
+  if (resp.status === 402) throw new Error('Créditos OpenSanctions agotados. Revisa tu cuenta.');
+  if (!resp.ok) { const err = await resp.text(); throw new Error(`OpenSanctions ${resp.status}: ${err.slice(0,120)}`); }
+
+  const data = await resp.json();
+  const results = data?.responses?.q1?.results || [];
+  const best = results[0];
+  return {
+    hits: results.filter(r => r.score >= 0.5).length,
+    score: best?.score || 0,
+    topHit: best ? {
+      nombre: best.caption,
+      score: best.score,
+      datasets: best.datasets?.join(', '),
+      url: `https://www.opensanctions.org/entities/${best.id}/`
+    } : null,
+    raw: data
+  };
+}
+
+// Similitud simple de strings (Dice coefficient sobre bigramas)
+function stringSimilarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const getBigrams = s => { const bg = new Set(); for (let i=0;i<s.length-1;i++) bg.add(s.slice(i,i+2)); return bg; };
+  const ba = getBigrams(a), bb = getBigrams(b);
+  let inter = 0; ba.forEach(g => { if (bb.has(g)) inter++; });
+  return (2 * inter) / (ba.size + bb.size) || 0;
+}
+
 function collectQs(prefix, preguntas) {
   const resp = {};
   preguntas.forEach(p => {
-    if (p.tipo === 'abierta') { const el = document.getElementById(`${prefix}-${p.id}`); if (el) resp[p.id] = el.value; }
-    else { const c = document.querySelector(`input[name="${prefix}-${p.id}"]:checked`); if (c) resp[p.id] = c.value; }
+    if (p.tipo === 'api_lookup') {
+      // Check HW temp store first, then existing saved respuestas
+      const tempKey = `${prefix}-${p.id}`;
+      const tempData = HW._apiResps?.[tempKey];
+      if (tempData) {
+        // Use the radio selection (may have been changed by user)
+        const checked = document.querySelector(`input[name="${prefix}-${p.id}"]:checked`);
+        resp[p.id] = { ...(tempData), respuesta: checked?.value || tempData.respuesta };
+      } else {
+        const checked = document.querySelector(`input[name="${prefix}-${p.id}"]:checked`);
+        if (checked) resp[p.id] = { respuesta: checked.value, _confirmed: false };
+      }
+    } else if (p.tipo === 'abierta') {
+      const el = document.getElementById(`${prefix}-${p.id}`); if (el) resp[p.id] = el.value;
+    } else {
+      const c = document.querySelector(`input[name="${prefix}-${p.id}"]:checked`); if (c) resp[p.id] = c.value;
+    }
   });
   return resp;
+}
+
+function isAnswered(p, resp) {
+  if (resp === undefined || resp === null || resp === '') return false;
+  if (p.tipo === 'api_lookup') return !!(resp?.respuesta);
+  return true;
 }
 
 async function hwSubmitScope() {
   const cq = state.data.cuestionarios.find(c => c.tipo === 'scope_check');
   if (!cq) { notify('Sin cuestionario de Scope Check', 'error'); return; }
   const resp = collectQs('hw-sc', cq.preguntas||[]);
-  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !resp[p.id]);
+  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
   if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
+  const unconfirmed = (cq.preguntas||[]).filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
+  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
   const { score, hasFlag } = calcScore(cq.preguntas||[], resp);
   const material = score >= (cq.umbralMaterial||2);
   HW.hom.scopeCheck = { respuestas:resp, score, resultado: material?'material':'no_material' };
@@ -2000,8 +2954,10 @@ async function hwSubmitRisk() {
   const cq = state.data.cuestionarios.find(c => c.tipo === 'risk_scoring');
   if (!cq) { notify('Sin cuestionario de Risk Scoring', 'error'); return; }
   const resp = collectQs('hw-rs', cq.preguntas||[]);
-  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !resp[p.id]);
+  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
   if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
+  const unconfirmed = (cq.preguntas||[]).filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
+  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
   const { score, hasFlag } = calcScore(cq.preguntas||[], resp);
   const nivel = getRiskLevel(cq, score, hasFlag);
   HW.hom.riskScoring = { respuestas:resp, score, resultado:nivel, hasFlag };
@@ -2031,8 +2987,10 @@ async function hwSubmitDD() {
   const idx = dd.cuestionarioActual||0, cq = cuests[idx];
   const preguntas = filterByDDLevel(cq.preguntas||[], dd.nivel);
   const resp = collectQs('hw-dd', preguntas);
-  const missing = preguntas.filter(p => p.obligatoria && !resp[p.id]);
+  const missing = preguntas.filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
   if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
+  const unconfirmed = preguntas.filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
+  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
   const { score, hasFlag } = calcScore(preguntas, resp);
   const nivel = getRiskLevel(cq, score, hasFlag);
   dd.respuestasPorCuestionario[cq.id] = resp;
