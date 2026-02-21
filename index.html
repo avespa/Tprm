@@ -2183,7 +2183,31 @@ function wClearProposal() {
 }
 
 function wRefreshStep() {
-  document.getElementById('wbody').innerHTML = renderWStep();
+  const STEPS = ['Información general','Preguntas','Niveles de riesgo','Aprobadores'];
+  // Update body content
+  const body = document.getElementById('wbody');
+  if (body) body.innerHTML = renderWStep();
+  // Update step dots
+  const dotsEl = document.querySelector('.wizard-steps');
+  if (dotsEl) {
+    dotsEl.innerHTML = STEPS.map((s,i) => {
+      const cls = i+1 === W.step ? 'active' : i+1 < W.step ? 'done' : '';
+      return `<div class="wizard-step ${cls}"><div class="step-dot">${i+1 < W.step ? '✓' : i+1}</div>${s}</div>${i<STEPS.length-1?'<span class="step-sep">›</span>':''}`;
+    }).join('');
+  }
+  // Update footer buttons
+  const footer = document.querySelector('.modal-footer');
+  if (footer) {
+    footer.innerHTML = `
+      <div style="flex:1">
+        ${W.step > 1 ? `<button class="btn btn-secondary" onclick="wNav(-1)">← Anterior</button>` : ''}
+      </div>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      ${W.step < 4
+        ? `<button class="btn btn-primary" onclick="wNav(1)">Siguiente →</button>`
+        : `<button class="btn btn-primary" onclick="wSave()">${SVG.check} Guardar Cuestionario</button>`}
+    `;
+  }
 }
 
 function wRefreshQ() { document.getElementById('wqlist').innerHTML = W.preguntas.map((p,i)=>renderQCard(p,i)).join(''); }
