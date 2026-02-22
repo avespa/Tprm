@@ -2438,13 +2438,46 @@ function getRiskLevel(cq, score, hasFlag) {
 }
 
 function getDDCuestionarios(tercero) {
-  const general = state.data.cuestionarios.find(c => c.tipo === 'general');
-  const porAmbito = state.data.cuestionarios.filter(c => c.tipo === 'due_diligence' && (tercero.ambitos||[]).includes(c.ambito));
+  const terAmbitoIds   = (tercero.ambitos||[]).map(nombre => {
+    const a = state.data.ambitos.find(x => x.nombre === nombre);
+    return a ? a.id : null;
+  }).filter(Boolean);
+  const terAmbitoNames = (tercero.ambitos||[]);
+
+  const general  = state.data.cuestionarios.find(c => c.tipo === 'general');
+  const porAmbito = state.data.cuestionarios.filter(c => {
+    if (c.tipo !== 'due_diligence') return false;
+    // Match by ambito_id (preferred) or by ambito name string
+    if (c.ambito_id && terAmbitoIds.includes(c.ambito_id)) return true;
+    if (c.ambito   && terAmbitoNames.includes(c.ambito))   return true;
+    return false;
+  });
   return [...(general ? [general] : []), ...porAmbito];
 }
 
 function filterByDDLevel(preguntas, nivel) {
   return nivel === 'alto' ? preguntas : preguntas.filter(p => !p.soloCompleta);
+}
+
+// Refresh HW header dots without reopening the modal
+function hwRefreshHeader() {
+  const h = HW.hom;
+  const faseIdx  = { scope_check:0, risk_scoring:1, due_diligence:2, aprobacion:3, completada:4 };
+  const faseNames = ['Scope Check','Risk Scoring','Due Diligence','Aprobación','Completada'];
+  const fases     = ['scope_check','risk_scoring','due_diligence','aprobacion','completada'];
+  const ci = faseIdx[h.fase] ?? 0;
+  const steps = fases.map((f,i) => {
+    const done = i < ci, active = i === ci;
+    const bg  = active ? 'var(--accent)' : done ? 'var(--green)' : 'var(--surface3)';
+    const col = active ? 'var(--accent)' : done ? 'var(--green)' : 'var(--text3)';
+    const wc  = active || done ? 'white' : 'var(--text3)';
+    return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:${col}">
+      <div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:${bg};color:${wc}">${done?'✓':i+1}</div>
+      ${faseNames[i]}${i<4?'<span style="color:var(--border2);margin-left:5px">›</span>':''}
+    </div>`;
+  }).join('');
+  const headerSteps = document.querySelector('.modal-header [style*="display:flex"][style*="gap:8px"]');
+  if (headerSteps) headerSteps.innerHTML = steps;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3040,6 +3073,7 @@ async function hwSubmitScope() {
   await saveItem('homologaciones', HW.hom);
   document.getElementById('hw-body').innerHTML = hwStep();
   document.getElementById('hw-footer').innerHTML = hwFooter();
+  hwRefreshHeader();
 }
 
 async function hwSubmitRisk() {
@@ -3062,7 +3096,8 @@ async function hwSubmitRisk() {
     await saveItem('homologaciones', HW.hom);
     notify('✅ Risk Scoring Bajo — Homologado automáticamente');
     document.getElementById('hw-body').innerHTML = hwStep();
-    document.getElementById('hw-footer').innerHTML = hwFooter(); return;
+    document.getElementById('hw-footer').innerHTML = hwFooter();
+    hwRefreshHeader(); return;
   }
 
   const ddNivel = (nivel === 'alto' || hasFlag) ? 'alto' : 'medio';
@@ -3072,6 +3107,7 @@ async function hwSubmitRisk() {
   await saveItem('homologaciones', HW.hom);
   document.getElementById('hw-body').innerHTML = hwStep();
   document.getElementById('hw-footer').innerHTML = hwFooter();
+  hwRefreshHeader();
 }
 
 async function hwSubmitDD() {
@@ -3088,7 +3124,13 @@ async function hwSubmitDD() {
   dd.respuestasPorCuestionario[cq.id] = resp;
   dd.resultadoPorCuestionario[cq.id] = { score, hasFlag, resultado:nivel };
 
-  if (idx < cuests.length-1) { dd.cuestionarioActual = idx+1; await saveItem('homologaciones', HW.hom); document.getElementById('hw-body').innerHTML = hwStep(); document.getElementById('hw-footer').innerHTML = hwFooter(); return; }
+  if (idx < cuests.length-1) {
+    dd.cuestionarioActual = idx+1;
+    await saveItem('homologaciones', HW.hom);
+    document.getElementById('hw-body').innerHTML = hwStep();
+    document.getElementById('hw-footer').innerHTML = hwFooter();
+    hwRefreshHeader(); return;
+  }
 
   const results = Object.values(dd.resultadoPorCuestionario);
   dd.resultadoFinal = results.some(r=>r.hasFlag||r.resultado==='alto') ? 'alto' : results.some(r=>r.resultado==='medio') ? 'medio' : 'bajo';
@@ -3099,6 +3141,7 @@ async function hwSubmitDD() {
   await saveItem('homologaciones', HW.hom);
   document.getElementById('hw-body').innerHTML = hwStep();
   document.getElementById('hw-footer').innerHTML = hwFooter();
+  hwRefreshHeader();
 }
 
 async function hwAprobar() {
@@ -3117,6 +3160,7 @@ async function hwCompletar() {
   notify(`✅ Homologación completada — Riesgo ${HW.hom.riesgoFinal.toUpperCase()}`);
   document.getElementById('hw-body').innerHTML = hwStep();
   document.getElementById('hw-footer').innerHTML = hwFooter();
+  hwRefreshHeader();
 }
 
 // ══════════════════════════════════════════════════════════════
