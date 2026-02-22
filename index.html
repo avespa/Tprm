@@ -331,6 +331,34 @@
   .action-plan-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
   .info-box { background: var(--accent-glow); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12px; color: var(--accent); }
   .warn-box { background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12px; color: var(--amber); }
+
+  /* DOMAIN BUILDER */
+  .domain-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .15s; }
+  .domain-card:hover { border-color:var(--border2); }
+  .domain-card-head { padding:16px 18px;display:flex;align-items:center;gap:12px; }
+  .domain-color-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+  .domain-badge-draft { background:var(--amber-soft);color:var(--amber);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px }
+  .domain-badge-active { background:var(--green-soft);color:var(--green);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px }
+
+  .phase-tabs { display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;gap:0; }
+  .phase-tab { padding:10px 18px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap; }
+  .phase-tab:hover { color:var(--text);background:var(--surface2); }
+  .phase-tab.active { color:var(--accent);border-bottom-color:var(--accent);font-weight:600; }
+  .phase-tab .tab-count { display:inline-block;margin-left:6px;background:var(--surface3);color:var(--text3);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px; }
+  .phase-tab.active .tab-count { background:var(--accent-glow);color:var(--accent); }
+
+  .builder-layout { display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start; }
+  .library-panel { background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:sticky;top:0; }
+  .library-panel-title { font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px; }
+  .lib-item { padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;font-size:12px;color:var(--text2);background:var(--surface);transition:all .15s; }
+  .lib-item:hover { border-color:var(--accent);color:var(--text);background:var(--accent-glow); }
+  .lib-item-text { font-size:11px;color:var(--text);margin-bottom:3px;line-height:1.3; }
+  .lib-item-meta { font-size:10px;color:var(--text3); }
+
+  .threshold-row { display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px; }
+  .threshold-box { background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center; }
+  .threshold-box-label { font-size:11px;font-weight:600;margin-bottom:8px; }
+  .threshold-box input { width:52px;text-align:center; }
 </style>
 </head>
 <body>
@@ -367,15 +395,15 @@
       </div>
       <div class="nav-item" data-page="ambitos" onclick="navigate('ambitos')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-        Ámbitos de Riesgo
+        Dominios de Riesgo
       </div>
       <div class="nav-item" data-page="tipos" onclick="navigate('tipos')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         Tipos de Tercero
       </div>
-      <div class="nav-item" data-page="cuestionarios" onclick="navigate('cuestionarios')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Cuestionarios
+      <div class="nav-item" data-page="biblioteca" onclick="navigate('biblioteca')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Biblioteca de Preguntas
       </div>
       <div class="nav-item" data-page="plazos" onclick="navigate('plazos')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -457,13 +485,62 @@ const state = {
       { id:'u4', nombre:'Laura Torres', email:'laura.torres@empresa.com', roles:['usuario'], activo:true },
     ],
     ambitos: [
-      { id:'a1', nombre:'Cyber', descripcion:'Riesgos de ciberseguridad', responsable:'María Pérez', color:'#3b82f6', cuestionarios:['c1'] },
-      { id:'a2', nombre:'Compliance', descripcion:'Cumplimiento normativo', responsable:'Carlos Ruiz', color:'#8b5cf6', cuestionarios:[] },
-      { id:'a3', nombre:'EUDR', descripcion:'EU Deforestation Regulation', responsable:'Laura Torres', color:'#10b981', cuestionarios:[] },
-      { id:'a4', nombre:'Data Protection', descripcion:'Protección de datos RGPD', responsable:'María Pérez', color:'#f59e0b', cuestionarios:[] },
-      { id:'a5', nombre:'IA', descripcion:'Inteligencia Artificial Act', responsable:'Admin Usuario', color:'#06b6d4', cuestionarios:[] },
-      { id:'a6', nombre:'Fiscal', descripcion:'Riesgos fiscales y tributarios', responsable:'Carlos Ruiz', color:'#ef4444', cuestionarios:[] },
-      { id:'a7', nombre:'ESG', descripcion:'Environmental, Social & Governance', responsable:'Laura Torres', color:'#84cc16', cuestionarios:[] },
+      {
+        id:'a1', nombre:'Cyber', descripcion:'Riesgos de ciberseguridad', responsable:'María Pérez', color:'#3b82f6',
+        borrador: false,
+        cuestionario: {
+          scopeCheck: {
+            preguntas: [
+              { id:'sc_a1_1', texto:'¿El tercero tiene acceso a sistemas o redes internas?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí',valor:2,flag:false},{texto:'No',valor:0,flag:false}], origenId:null },
+              { id:'sc_a1_2', texto:'¿Procesa o almacena datos sensibles de la organización?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí',valor:2,flag:false},{texto:'No',valor:0,flag:false}], origenId:null },
+            ],
+            umbralMaterial: 2
+          },
+          riskScoring: {
+            preguntas: [
+              { id:'rs_a1_1', texto:'¿En qué región está domiciliado el tercero?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'UE / OCDE',valor:1,flag:false},{texto:'País de riesgo medio',valor:2,flag:false},{texto:'País de alto riesgo o sancionado',valor:3,flag:true}], origenId:null },
+              { id:'rs_a1_2', texto:'¿Qué nivel de acceso tendrá a sistemas internos?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sin acceso',valor:0,flag:false},{texto:'Acceso limitado',valor:1,flag:false},{texto:'Acceso amplio a sistemas críticos',valor:3,flag:true}], origenId:null },
+            ],
+            umbrales: { sinDD:{max:1}, reducida:{min:2,max:4}, ampliada:{min:5} },
+            bloqueoRedFlag: true,
+            aprobadores: { reducida:'', ampliada:'Carlos Ruiz' }
+          },
+          ddReducida: {
+            preguntas: [
+              { id:'dd_r_a1_1', texto:'¿Dispone de política de ciberseguridad documentada?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí, documentada y actualizada',valor:3,flag:false},{texto:'Sí, pero no actualizada',valor:2,flag:false},{texto:'No existe',valor:0,flag:true}], origenId:null },
+              { id:'dd_r_a1_2', texto:'¿Realiza auditorías de seguridad periódicas?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Anualmente o más',valor:3,flag:false},{texto:'Cada 2-3 años',valor:2,flag:false},{texto:'Nunca',valor:0,flag:true}], origenId:null },
+            ]
+          },
+          ddAmpliada: {
+            preguntas: [
+              { id:'dd_a_a1_1', texto:'¿Dispone de política de ciberseguridad documentada?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí, documentada y actualizada',valor:3,flag:false},{texto:'Sí, pero no actualizada',valor:2,flag:false},{texto:'No existe',valor:0,flag:true}], origenId:null },
+              { id:'dd_a_a1_2', texto:'¿Realiza auditorías de seguridad periódicas?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Anualmente o más',valor:3,flag:false},{texto:'Cada 2-3 años',valor:2,flag:false},{texto:'Nunca',valor:0,flag:true}], origenId:null },
+              { id:'dd_a_a1_3', texto:'¿Cuenta con seguro de ciberriesgo?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí, con cobertura adecuada',valor:3,flag:false},{texto:'No',valor:0,flag:false}], origenId:null },
+              { id:'dd_a_a1_4', texto:'¿Dispone de plan de respuesta a incidentes probado?', tipo:'select_unico', obligatoria:true, opciones:[{texto:'Sí, probado en los últimos 12m',valor:3,flag:false},{texto:'Existe pero no se ha probado',valor:1,flag:false},{texto:'No existe',valor:0,flag:true}], origenId:null },
+            ]
+          }
+        }
+      },
+      {
+        id:'a2', nombre:'Compliance', descripcion:'Cumplimiento normativo', responsable:'Carlos Ruiz', color:'#8b5cf6',
+        borrador: true,
+        cuestionario: {
+          scopeCheck: { preguntas:[], umbralMaterial:1 },
+          riskScoring: { preguntas:[], umbrales:{ sinDD:{max:1}, reducida:{min:2,max:4}, ampliada:{min:5} }, bloqueoRedFlag:true, aprobadores:{ reducida:'', ampliada:'' } },
+          ddReducida: { preguntas:[] },
+          ddAmpliada: { preguntas:[] }
+        }
+      },
+      { id:'a3', nombre:'EUDR', descripcion:'EU Deforestation Regulation', responsable:'Laura Torres', color:'#10b981', borrador:true, cuestionario:{ scopeCheck:{preguntas:[],umbralMaterial:1}, riskScoring:{preguntas:[],umbrales:{sinDD:{max:1},reducida:{min:2,max:4},ampliada:{min:5}},bloqueoRedFlag:true,aprobadores:{reducida:'',ampliada:''}}, ddReducida:{preguntas:[]}, ddAmpliada:{preguntas:[]} } },
+      { id:'a4', nombre:'Data Protection', descripcion:'Protección de datos RGPD', responsable:'María Pérez', color:'#f59e0b', borrador:true, cuestionario:{ scopeCheck:{preguntas:[],umbralMaterial:1}, riskScoring:{preguntas:[],umbrales:{sinDD:{max:1},reducida:{min:2,max:4},ampliada:{min:5}},bloqueoRedFlag:true,aprobadores:{reducida:'',ampliada:''}}, ddReducida:{preguntas:[]}, ddAmpliada:{preguntas:[]} } },
+      { id:'a5', nombre:'ESG', descripcion:'Environmental, Social & Governance', responsable:'Laura Torres', color:'#84cc16', borrador:true, cuestionario:{ scopeCheck:{preguntas:[],umbralMaterial:1}, riskScoring:{preguntas:[],umbrales:{sinDD:{max:1},reducida:{min:2,max:4},ampliada:{min:5}},bloqueoRedFlag:true,aprobadores:{reducida:'',ampliada:''}}, ddReducida:{preguntas:[]}, ddAmpliada:{preguntas:[]} } },
+    ],
+    biblioteca: [
+      { id:'b1', texto:'¿El tercero tiene acceso a sistemas o redes internas?', tipo:'select_unico', opciones:[{texto:'Sí',valor:2,flag:false},{texto:'No',valor:0,flag:false}], etiquetas:['cyber','acceso'], creadoEn:'a1', fase:'scopeCheck' },
+      { id:'b2', texto:'¿Procesa o almacena datos sensibles de la organización?', tipo:'select_unico', opciones:[{texto:'Sí',valor:2,flag:false},{texto:'No',valor:0,flag:false}], etiquetas:['cyber','datos'], creadoEn:'a1', fase:'scopeCheck' },
+      { id:'b3', texto:'¿En qué región está domiciliado el tercero?', tipo:'select_unico', opciones:[{texto:'UE / OCDE',valor:1,flag:false},{texto:'País de riesgo medio',valor:2,flag:false},{texto:'País de alto riesgo o sancionado',valor:3,flag:true}], etiquetas:['region','riesgo'], creadoEn:'a1', fase:'riskScoring' },
+      { id:'b4', texto:'¿Dispone de política de ciberseguridad documentada?', tipo:'select_unico', opciones:[{texto:'Sí, documentada y actualizada',valor:3,flag:false},{texto:'Sí, pero no actualizada',valor:2,flag:false},{texto:'No existe',valor:0,flag:true}], etiquetas:['cyber','política'], creadoEn:'a1', fase:'ddAmpliada' },
+      { id:'b5', texto:'¿Realiza auditorías de seguridad periódicas?', tipo:'select_unico', opciones:[{texto:'Anualmente o más',valor:3,flag:false},{texto:'Cada 2-3 años',valor:2,flag:false},{texto:'Nunca',valor:0,flag:true}], etiquetas:['cyber','auditoría'], creadoEn:'a1', fase:'ddAmpliada' },
     ],
     tipos: [
       { id:'tp1', nivel1:'Proveedor', nivel2:'Proveedor Directo', nivel3:'', terceros:['t1','t2','t3'] },
@@ -746,7 +823,7 @@ function navigate(page) {
   state.currentPage = page;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
   document.getElementById('topbar-title').textContent = pageTitles[page] || page;
-  ({ dashboard:renderDashboard, terceros:renderTerceros, homologaciones:renderHomologaciones, planes:renderPlanes, usuarios:renderUsuarios, ambitos:renderAmbitos, tipos:renderTipos, cuestionarios:renderCuestionarios, plazos:renderPlazos })[page]?.();
+  ({ dashboard:renderDashboard, terceros:renderTerceros, homologaciones:renderHomologaciones, planes:renderPlanes, usuarios:renderUsuarios, ambitos:renderAmbitos, tipos:renderTipos, cuestionarios:renderCuestionarios, plazos:renderPlazos, biblioteca:renderBiblioteca })[page]?.();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1472,67 +1549,647 @@ async function saveUsuario(id) {
 // ══════════════════════════════════════════════════════════════
 //  ÁMBITOS
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  DOMINIOS DE RIESGO — Fase 1
+// ══════════════════════════════════════════════════════════════
+
 function renderAmbitos() {
+  const dominios = state.data.ambitos;
+  const activos  = dominios.filter(d => !d.borrador);
+  const borradores = dominios.filter(d => d.borrador);
+
   document.getElementById('content').innerHTML = `
     <div class="section-header">
-      <div><div class="section-title">Ámbitos de Riesgo</div><div class="section-sub">${state.data.ambitos.length} ámbitos</div></div>
-      <button class="btn btn-primary" onclick="showAmbitoModal(null)">${SVG.plus} Nuevo Ámbito</button>
+      <div>
+        <div class="section-title">Dominios de Riesgo</div>
+        <div class="section-sub">${activos.length} activos · ${borradores.length} borradores</div>
+      </div>
+      <button class="btn btn-primary" onclick="openDomainWizard(null)">${SVG.plus} Nuevo Dominio</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
-      ${state.data.ambitos.map(a => {
-        const cuests = state.data.cuestionarios.filter(c=>c.ambito_id===a.id);
-        const tercs  = state.data.terceros.filter(t=>(t.ambitos||[]).includes(a.nombre));
-        return `<div class="card" style="border-left:3px solid ${a.color}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-            <div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:${a.color}">${a.nombre}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">${a.descripcion||''}</div></div>
-            <div style="display:flex;gap:4px">
-              <button class="btn btn-ghost btn-icon btn-sm" onclick="showAmbitoModal('${a.id}')">${SVG.edit}</button>
-              <button class="btn btn-danger btn-icon btn-sm" onclick="deleteAmbito('${a.id}')">${SVG.trash}</button>
-            </div>
-          </div>
-          <div style="border-top:1px solid var(--border);padding-top:12px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px"><span>👤 Responsable</span><span style="color:var(--text)">${a.responsable||'—'}</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px"><span>📋 Cuestionarios</span><span class="badge" style="background:${a.color+'22'};color:${a.color}">${cuests.length}</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)"><span>🏢 Terceros</span><span class="badge badge-gray">${tercs.length}</span></div>
-          </div>
-          ${cuests.length?`<div style="margin-top:10px">${cuests.map(c=>`<span class="badge badge-blue" style="margin:2px">${c.nombre}</span>`).join('')}</div>`:''}
-        </div>`;
-      }).join('')}
-    </div>
+
+    ${activos.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Activos</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:24px">
+        ${activos.map(d => renderDomainCard(d)).join('')}
+      </div>` : ''}
+
+    ${borradores.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Borradores</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+        ${borradores.map(d => renderDomainCard(d)).join('')}
+      </div>` : ''}
+
+    ${!dominios.length ? `<div class="empty-state"><p>Sin dominios. Crea el primero.</p></div>` : ''}
   `;
 }
 
-async function deleteAmbito(id) {
-  if (!confirm('¿Eliminar este ámbito?')) return;
-  await deleteItem('ambitos', id); notify('Ámbito eliminado'); renderAmbitos();
-}
-function showAmbitoModal(id) {
-  const a = id ? state.data.ambitos.find(x=>x.id===id) : null;
-  openModal(`
-    <div class="modal">
-      <div class="modal-header"><div class="modal-title">${a?'Editar Ámbito':'Nuevo Ámbito de Riesgo'}</div><button class="btn btn-ghost btn-icon" onclick="closeModal()">${SVG.x}</button></div>
-      <div class="modal-body">
-        <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="a-nombre" value="${a?.nombre||''}" placeholder="Ej: Cyber, ESG..."></div>
-        <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="a-desc" value="${a?.descripcion||''}" placeholder="Breve descripción"></div>
-        <div class="form-group"><label class="form-label">Responsable</label>
-          <select class="form-select" id="a-resp"><option value="">Sin responsable</option>
-            ${state.data.usuarios.map(u=>`<option value="${u.nombre}" ${a?.responsable===u.nombre?'selected':''}>${u.nombre}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Color identificativo</label>
-          <div style="display:flex;align-items:center;gap:12px"><input type="color" id="a-color" value="${a?.color||'#3b82f6'}" style="width:48px;height:36px;border:none;background:none;cursor:pointer;border-radius:4px"><span style="font-size:12px;color:var(--text2)">Usado para identificar el ámbito visualmente</span></div>
+function renderDomainCard(d) {
+  const cq = d.cuestionario;
+  const countSC  = (cq?.scopeCheck?.preguntas||[]).length;
+  const countRS  = (cq?.riskScoring?.preguntas||[]).length;
+  const countDDR = (cq?.ddReducida?.preguntas||[]).length;
+  const countDDA = (cq?.ddAmpliada?.preguntas||[]).length;
+  const total = countSC + countRS + countDDR + countDDA;
+
+  const phaseBar = [
+    { label:'SC', count:countSC, color:'#8b5cf6', title:'Scope Check' },
+    { label:'RS', count:countRS, color:'#f59e0b', title:'Risk Scoring' },
+    { label:'DDR', count:countDDR, color:d.color, title:'DD Reducida' },
+    { label:'DDA', count:countDDA, color:d.color+'cc', title:'DD Ampliada' },
+  ];
+
+  return `<div class="domain-card">
+    <div class="domain-card-head" style="border-left:4px solid ${d.color}">
+      <span class="domain-color-dot" style="background:${d.color}"></span>
+      <div style="flex:1">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text)">${d.nombre}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${d.descripcion||''}</div>
+      </div>
+      <span class="${d.borrador?'domain-badge-draft':'domain-badge-active'}">${d.borrador?'BORRADOR':'ACTIVO'}</span>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid var(--border)">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        ${phaseBar.map(p=>`
+          <div style="flex:1;text-align:center;padding:6px 4px;background:${p.color}18;border-radius:var(--radius-sm);border:1px solid ${p.color}33" title="${p.title}">
+            <div style="font-size:16px;font-weight:700;color:${p.color}">${p.count}</div>
+            <div style="font-size:9px;color:var(--text3);font-weight:600">${p.label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">👤 ${d.responsable||'Sin responsable'} · ${total} preguntas</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-primary btn-sm" onclick="openDomainWizard('${d.id}')">
+            ${SVG.edit} ${d.borrador ? 'Continuar' : 'Editar'}
+          </button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteDominio('${d.id}')">${SVG.trash}</button>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveAmbito('${id||''}')">${SVG.check} Guardar</button></div>
+    </div>
+  </div>`;
+}
+
+async function deleteDominio(id) {
+  const d = state.data.ambitos.find(x=>x.id===id);
+  if (!d) return;
+  if (!confirm(`¿Eliminar el dominio "${d.nombre}"? Se eliminarán todos sus cuestionarios.`)) return;
+  await deleteItem('ambitos', id);
+  notify('Dominio eliminado');
+  renderAmbitos();
+}
+
+// ── DOMAIN WIZARD ────────────────────────────────────────────
+let DW = {}; // domain wizard state
+
+function openDomainWizard(id) {
+  const d = id ? state.data.ambitos.find(x=>x.id===id) : null;
+  DW = {
+    id: id || null,
+    nombre: d?.nombre || '',
+    descripcion: d?.descripcion || '',
+    responsable: d?.responsable || '',
+    color: d?.color || '#3b82f6',
+    borrador: d ? d.borrador : true,
+    activePhase: 'scopeCheck',
+    cuestionario: d?.cuestionario ? JSON.parse(JSON.stringify(d.cuestionario)) : {
+      scopeCheck:  { preguntas:[], umbralMaterial:1 },
+      riskScoring: { preguntas:[], umbrales:{sinDD:{max:1},reducida:{min:2,max:4},ampliada:{min:5}}, bloqueoRedFlag:true, aprobadores:{reducida:'',ampliada:''} },
+      ddReducida:  { preguntas:[] },
+      ddAmpliada:  { preguntas:[] }
+    }
+  };
+  renderDomainWizardModal();
+}
+
+function renderDomainWizardModal() {
+  openModal(`
+    <div class="modal" style="max-width:960px;height:88vh;display:flex;flex-direction:column">
+      <div class="modal-header" style="flex-shrink:0">
+        <div style="flex:1">
+          <div class="modal-title">${DW.id ? 'Editar Dominio' : 'Nuevo Dominio de Riesgo'}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">
+            ${DW.id ? `Editando: <strong style="color:var(--text)">${DW.nombre}</strong>` : 'Define el dominio y sus cuestionarios por fase'}
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal()">${SVG.x}</button>
+      </div>
+      <div class="modal-body" style="flex:1;overflow-y:auto;padding:20px 24px" id="dw-body">
+        ${renderDWBody()}
+      </div>
+      <div class="modal-footer" style="flex-shrink:0" id="dw-footer">
+        ${renderDWFooter()}
+      </div>
     </div>
   `);
 }
-async function saveAmbito(id) {
-  const nombre = document.getElementById('a-nombre').value.trim();
-  if (!nombre) { notify('Nombre obligatorio', 'error'); return; }
-  const item = { id:id||genId(), nombre, descripcion:document.getElementById('a-desc').value, responsable:document.getElementById('a-resp').value, color:document.getElementById('a-color').value, cuestionarios:id?(state.data.ambitos.find(a=>a.id===id)?.cuestionarios||[]):[] };
-  await saveItem('ambitos', item); notify(id?'Ámbito actualizado':'Ámbito creado'); closeModal(); renderAmbitos();
+
+function renderDWBody() {
+  const cq = DW.cuestionario;
+  const phases = [
+    { key:'info',       label:'📋 Información', count:null },
+    { key:'scopeCheck', label:'🔍 Scope Check', count:(cq.scopeCheck.preguntas||[]).length },
+    { key:'riskScoring',label:'📊 Risk Scoring', count:(cq.riskScoring.preguntas||[]).length },
+    { key:'ddReducida', label:'📄 DD Reducida',  count:(cq.ddReducida.preguntas||[]).length },
+    { key:'ddAmpliada', label:'📋 DD Ampliada',  count:(cq.ddAmpliada.preguntas||[]).length },
+  ];
+
+  return `
+    <div class="phase-tabs" id="dw-tabs">
+      ${phases.map(p=>`
+        <div class="phase-tab ${DW.activePhase===p.key?'active':''}" onclick="dwSwitchPhase('${p.key}')">
+          ${p.label}
+          ${p.count!==null ? `<span class="tab-count">${p.count}</span>` : ''}
+        </div>`).join('')}
+    </div>
+    <div id="dw-phase-content">
+      ${DW.activePhase === 'info' ? renderDWInfo() :
+        DW.activePhase === 'scopeCheck'  ? renderDWQuestions('scopeCheck') :
+        DW.activePhase === 'riskScoring' ? renderDWRiskScoring() :
+        DW.activePhase === 'ddReducida'  ? renderDWQuestions('ddReducida') :
+        renderDWQuestions('ddAmpliada')}
+    </div>`;
 }
+
+function dwSwitchPhase(phase) {
+  dwCollectCurrentPhase();
+  DW.activePhase = phase;
+  document.getElementById('dw-body').innerHTML = renderDWBody();
+}
+
+function renderDWFooter() {
+  return `
+    <div style="flex:1;display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="dwSaveDraft()">💾 Guardar borrador</button>
+    </div>
+    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="dwPublish()">${SVG.check} ${DW.borrador ? 'Publicar dominio' : 'Guardar cambios'}</button>
+  `;
+}
+
+function renderDWInfo() {
+  const dupCheck = state.data.ambitos.find(a => a.nombre.toLowerCase() === DW.nombre.toLowerCase() && a.id !== DW.id);
+  return `
+    <div style="max-width:520px">
+      <div class="form-group">
+        <label class="form-label">Nombre del dominio *</label>
+        <input class="form-input" id="dw-nombre" value="${DW.nombre}" placeholder="Ej: Cyber, Compliance, ESG..."
+          oninput="DW.nombre=this.value; dwCheckDup(this.value)">
+        <div id="dw-dup-warn" style="display:${dupCheck?'block':'none'};color:var(--red);font-size:11px;margin-top:4px">
+          ⚠️ Ya existe un dominio con este nombre
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <input class="form-input" id="dw-desc" value="${DW.descripcion}" placeholder="Breve descripción del dominio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsable</label>
+        <select class="form-select" id="dw-resp">
+          <option value="">Sin responsable</option>
+          ${state.data.usuarios.map(u=>`<option value="${u.nombre}" ${DW.responsable===u.nombre?'selected':''}>${u.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color identificativo</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <input type="color" id="dw-color" value="${DW.color}" style="width:48px;height:36px;border:none;background:none;cursor:pointer;border-radius:4px" oninput="DW.color=this.value">
+          <span style="font-size:12px;color:var(--text3)">Usado para identificar el dominio visualmente</span>
+        </div>
+      </div>
+      <div class="info-box" style="margin-top:8px">
+        💡 Después de configurar la información básica, usa las pestañas superiores para definir las preguntas de cada fase.
+      </div>
+    </div>`;
+}
+
+function dwCheckDup(val) {
+  const dup = state.data.ambitos.find(a=>a.nombre.toLowerCase()===val.toLowerCase() && a.id!==DW.id);
+  const el = document.getElementById('dw-dup-warn');
+  if (el) el.style.display = dup ? 'block' : 'none';
+}
+
+function renderDWQuestions(phase) {
+  const preguntas = DW.cuestionario[phase].preguntas || [];
+  const phaseLabels = { scopeCheck:'Scope Check', ddReducida:'DD Reducida', ddAmpliada:'DD Ampliada' };
+  const libSuggestions = getBibliotecaSuggestions(phase, '');
+
+  return `
+    <div class="builder-layout">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div style="font-weight:600;font-size:14px">${phaseLabels[phase]}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">
+              ${phase==='scopeCheck' ? 'Determina si el tercero es material para este dominio. Umbral configurable.' :
+                phase==='ddReducida' ? 'Preguntas para DD cuando el Risk Scoring resulta en nivel medio.' :
+                'Preguntas completas para DD cuando el Risk Scoring resulta en nivel alto.'}
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('${phase}')">${SVG.plus} Añadir pregunta</button>
+        </div>
+        ${phase === 'scopeCheck' ? `
+          <div class="info-box" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <span style="white-space:nowrap">Umbral de materialidad:</span>
+            <input class="form-input" id="dw-umbral" type="number" min="1" value="${DW.cuestionario.scopeCheck.umbralMaterial||1}"
+              style="width:70px" onchange="DW.cuestionario.scopeCheck.umbralMaterial=+this.value">
+            <span style="font-size:11px;color:var(--accent)">puntos mínimos para considerar material</span>
+          </div>` : ''}
+        <div id="dw-qlist-${phase}">
+          ${preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
+            `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
+              <p style="font-size:13px">Sin preguntas. Añade una nueva o copia de la biblioteca.</p>
+            </div>`}
+        </div>
+      </div>
+      <div class="library-panel">
+        <div class="library-panel-title">📚 Biblioteca <span style="font-size:10px;color:var(--text3);font-weight:400">(clic para copiar)</span></div>
+        <input class="form-input" placeholder="Buscar..." style="margin-bottom:10px;font-size:12px"
+          oninput="dwFilterLib(this.value,'${phase}')">
+        <div id="lib-results-${phase}">
+          ${renderLibItems(libSuggestions, phase)}
+        </div>
+      </div>
+    </div>`;
+}
+
+function getBibliotecaSuggestions(phase, query) {
+  return (state.data.biblioteca||[]).filter(b => {
+    if (query && !b.texto.toLowerCase().includes(query.toLowerCase())) return false;
+    return true;
+  }).slice(0, 20);
+}
+
+function renderLibItems(items, phase) {
+  if (!items.length) return `<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px">Sin resultados</div>`;
+  return items.map(b => {
+    const dominio = state.data.ambitos.find(a=>a.id===b.creadoEn);
+    return `<div class="lib-item" onclick="dwCopyFromLib('${b.id}','${phase}')">
+      <div class="lib-item-text">${b.texto.slice(0,70)}${b.texto.length>70?'…':''}</div>
+      <div class="lib-item-meta">${dominio?.nombre||'General'} · ${b.opciones?.length||0} opciones</div>
+    </div>`;
+  }).join('');
+}
+
+function dwFilterLib(query, phase) {
+  const items = getBibliotecaSuggestions(phase, query);
+  const el = document.getElementById(`lib-results-${phase}`);
+  if (el) el.innerHTML = renderLibItems(items, phase);
+}
+
+function dwCopyFromLib(bibId, phase) {
+  const b = (state.data.biblioteca||[]).find(x=>x.id===bibId);
+  if (!b) return;
+  const copy = {
+    id: genId(),
+    texto: b.texto,
+    tipo: b.tipo,
+    obligatoria: true,
+    opciones: JSON.parse(JSON.stringify(b.opciones||[])),
+    origenId: b.id
+  };
+  DW.cuestionario[phase].preguntas.push(copy);
+  dwRefreshQList(phase);
+  notify(`Pregunta copiada de biblioteca ✓`);
+}
+
+function renderDWQuestionCard(p, idx, phase) {
+  const isFromLib = !!p.origenId;
+  return `<div class="question-card" style="margin-bottom:10px" id="dwqc-${phase}-${idx}">
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+      <span style="color:var(--text3);font-size:12px;padding-top:10px;min-width:20px">${idx+1}.</span>
+      <div style="flex:1">
+        <input class="form-input" placeholder="Texto de la pregunta..." value="${(p.texto||'').replace(/"/g,'&quot;')}"
+          oninput="DW.cuestionario['${phase}'].preguntas[${idx}].texto=this.value;dwSuggestLib(this.value,'${phase}')"
+          style="margin-bottom:6px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="form-select" style="width:auto;font-size:12px"
+            onchange="DW.cuestionario['${phase}'].preguntas[${idx}].tipo=this.value">
+            <option value="select_unico" ${p.tipo==='select_unico'?'selected':''}>Opción única</option>
+            <option value="abierta" ${p.tipo==='abierta'?'selected':''}>Abierta</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" ${p.obligatoria?'checked':''} onchange="DW.cuestionario['${phase}'].preguntas[${idx}].obligatoria=this.checked"> Obligatoria
+          </label>
+          ${isFromLib ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-glow);color:var(--accent)">📚 Copia de biblioteca</span>` : ''}
+          <button class="btn btn-danger btn-icon btn-sm" style="margin-left:auto" onclick="dwDeleteQuestion('${phase}',${idx})">${SVG.trash}</button>
+        </div>
+      </div>
+    </div>
+    ${p.tipo !== 'abierta' ? `
+      <div style="margin-left:30px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Opciones de respuesta:</div>
+        <div id="dw-opts-${phase}-${idx}">
+          ${(p.opciones||[]).map((o,oi)=>renderDWOption(o,oi,phase,idx)).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;margin-top:4px"
+          onclick="dwAddOption('${phase}',${idx})">${SVG.plus} Opción</button>
+      </div>` : ''}
+  </div>`;
+}
+
+function renderDWOption(o, oi, phase, qi) {
+  return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px" id="dwopt-${phase}-${qi}-${oi}">
+    <input class="form-input" style="flex:1;font-size:12px" placeholder="Texto opción"
+      value="${(o.texto||'').replace(/"/g,'&quot;')}"
+      oninput="DW.cuestionario['${phase}'].preguntas[${qi}].opciones[${oi}].texto=this.value">
+    <input class="form-input" type="number" min="0" max="3" style="width:52px;font-size:12px;text-align:center"
+      title="Valor (0-3)" value="${o.valor??0}"
+      oninput="DW.cuestionario['${phase}'].preguntas[${qi}].opciones[${oi}].valor=+this.value">
+    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--red);cursor:pointer;white-space:nowrap" title="Flag de riesgo">
+      <input type="checkbox" ${o.flag?'checked':''} onchange="DW.cuestionario['${phase}'].preguntas[${qi}].opciones[${oi}].flag=this.checked"> 🚩
+    </label>
+    <button class="btn btn-ghost btn-icon btn-sm" onclick="dwDeleteOption('${phase}',${qi},${oi})">${SVG.x}</button>
+  </div>`;
+}
+
+function dwAddQuestion(phase) {
+  DW.cuestionario[phase].preguntas.push({
+    id: genId(), texto:'', tipo:'select_unico', obligatoria:true, opciones:[
+      {texto:'Sí',valor:3,flag:false},{texto:'No',valor:0,flag:true}
+    ], origenId:null
+  });
+  dwRefreshQList(phase);
+}
+
+function dwDeleteQuestion(phase, idx) {
+  const p = DW.cuestionario[phase].preguntas[idx];
+  // Check if this question was copied to other domains
+  const copias = (state.data.ambitos||[]).flatMap(a => {
+    const all = [...(a.cuestionario?.scopeCheck?.preguntas||[]),...(a.cuestionario?.riskScoring?.preguntas||[]),...(a.cuestionario?.ddReducida?.preguntas||[]),...(a.cuestionario?.ddAmpliada?.preguntas||[])];
+    return all.filter(q => q.origenId === p.id).map(q => a.nombre);
+  });
+  const enBib = (state.data.biblioteca||[]).find(b => b.id === p.id || b.origenId === p.id);
+  if (copias.length || enBib) {
+    if (!confirm(`⚠️ Esta pregunta está vinculada:\n${copias.length ? '- Copiada en: ' + [...new Set(copias)].join(', ') : ''}\n${enBib ? '- Existe en la biblioteca' : ''}\n\n¿Confirmar eliminación?`)) return;
+  }
+  DW.cuestionario[phase].preguntas.splice(idx, 1);
+  dwRefreshQList(phase);
+}
+
+function dwAddOption(phase, qi) {
+  DW.cuestionario[phase].preguntas[qi].opciones.push({texto:'',valor:0,flag:false});
+  dwRefreshQList(phase);
+}
+
+function dwDeleteOption(phase, qi, oi) {
+  DW.cuestionario[phase].preguntas[qi].opciones.splice(oi, 1);
+  dwRefreshQList(phase);
+}
+
+function dwRefreshQList(phase) {
+  const el = document.getElementById(`dw-qlist-${phase}`);
+  if (!el) return;
+  const preguntas = DW.cuestionario[phase].preguntas;
+  el.innerHTML = preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
+    `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
+      <p style="font-size:13px">Sin preguntas. Añade una nueva o copia de la biblioteca.</p>
+    </div>`;
+  // Update tab count
+  dwRefreshTabCounts();
+}
+
+function dwRefreshTabCounts() {
+  const cq = DW.cuestionario;
+  const counts = {
+    scopeCheck: (cq.scopeCheck.preguntas||[]).length,
+    riskScoring:(cq.riskScoring.preguntas||[]).length,
+    ddReducida: (cq.ddReducida.preguntas||[]).length,
+    ddAmpliada: (cq.ddAmpliada.preguntas||[]).length,
+  };
+  Object.entries(counts).forEach(([phase, count]) => {
+    const tabs = document.querySelectorAll('.phase-tab');
+    tabs.forEach(tab => {
+      if (tab.getAttribute('onclick')?.includes(phase)) {
+        const badge = tab.querySelector('.tab-count');
+        if (badge) badge.textContent = count;
+      }
+    });
+  });
+}
+
+function renderDWRiskScoring() {
+  const rs = DW.cuestionario.riskScoring;
+  return `
+    <div class="builder-layout">
+      <div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Risk Scoring</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Preguntas que evalúa el equipo interno. El resultado determina el nivel de DD.</div>
+
+        <div style="font-weight:500;font-size:13px;margin-bottom:10px;color:var(--text)">Umbrales de resultado</div>
+        <div class="threshold-row" style="margin-bottom:20px">
+          <div class="threshold-box" style="border-color:var(--green)">
+            <div class="threshold-box-label" style="color:var(--green)">🟢 Sin DD</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Puntuación máxima</div>
+            <input class="form-input threshold-box input" type="number" min="0" id="dw-th-sindd"
+              value="${rs.umbrales?.sinDD?.max??1}"
+              onchange="DW.cuestionario.riskScoring.umbrales.sinDD.max=+this.value">
+          </div>
+          <div class="threshold-box" style="border-color:var(--amber)">
+            <div class="threshold-box-label" style="color:var(--amber)">🟡 DD Reducida</div>
+            <div style="display:flex;gap:6px;justify-content:center;align-items:center">
+              <input class="form-input" type="number" min="0" style="width:52px;text-align:center" id="dw-th-rmin"
+                value="${rs.umbrales?.reducida?.min??2}"
+                onchange="DW.cuestionario.riskScoring.umbrales.reducida.min=+this.value">
+              <span style="color:var(--text3)">—</span>
+              <input class="form-input" type="number" min="0" style="width:52px;text-align:center" id="dw-th-rmax"
+                value="${rs.umbrales?.reducida?.max??4}"
+                onchange="DW.cuestionario.riskScoring.umbrales.reducida.max=+this.value">
+            </div>
+          </div>
+          <div class="threshold-box" style="border-color:var(--red)">
+            <div class="threshold-box-label" style="color:var(--red)">🔴 DD Ampliada</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Puntuación mínima</div>
+            <input class="form-input" type="number" min="0" style="width:52px;text-align:center" id="dw-th-amin"
+              value="${rs.umbrales?.ampliada?.min??5}"
+              onchange="DW.cuestionario.riskScoring.umbrales.ampliada.min=+this.value">
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="dw-redflag" ${rs.bloqueoRedFlag?'checked':''}
+              onchange="DW.cuestionario.riskScoring.bloqueoRedFlag=this.checked">
+            🚩 Una respuesta con flag fuerza automáticamente DD Ampliada
+          </label>
+        </div>
+
+        <div style="font-weight:500;font-size:13px;margin-bottom:10px;color:var(--text)">Aprobadores por nivel de DD</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Aprobador DD Reducida</label>
+            <select class="form-select" id="dw-apr-reducida">
+              <option value="">Sin aprobador</option>
+              ${state.data.usuarios.map(u=>`<option value="${u.nombre}" ${rs.aprobadores?.reducida===u.nombre?'selected':''}>${u.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Aprobador DD Ampliada</label>
+            <select class="form-select" id="dw-apr-ampliada">
+              <option value="">Sin aprobador</option>
+              ${state.data.usuarios.map(u=>`<option value="${u.nombre}" ${rs.aprobadores?.ampliada===u.nombre?'selected':''}>${u.nombre}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <div style="font-weight:500;font-size:13px">Preguntas de Risk Scoring</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Evaluadas internamente por tu equipo</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('riskScoring')">${SVG.plus} Añadir pregunta</button>
+        </div>
+        <div id="dw-qlist-riskScoring">
+          ${(rs.preguntas||[]).length ? (rs.preguntas||[]).map((p,i)=>renderDWQuestionCard(p,i,'riskScoring')).join('') :
+            `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
+              <p style="font-size:13px">Sin preguntas de Risk Scoring.</p>
+            </div>`}
+        </div>
+      </div>
+      <div class="library-panel">
+        <div class="library-panel-title">📚 Biblioteca</div>
+        <input class="form-input" placeholder="Buscar..." style="margin-bottom:10px;font-size:12px"
+          oninput="dwFilterLib(this.value,'riskScoring')">
+        <div id="lib-results-riskScoring">
+          ${renderLibItems(getBibliotecaSuggestions('riskScoring',''), 'riskScoring')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function dwSuggestLib(texto, phase) {
+  if (texto.length < 4) return;
+  const results = getBibliotecaSuggestions(phase, texto);
+  const el = document.getElementById(`lib-results-${phase}`);
+  if (el) el.innerHTML = renderLibItems(results, phase);
+}
+
+function dwCollectCurrentPhase() {
+  // Collect info tab fields if active
+  if (DW.activePhase === 'info') {
+    DW.nombre     = document.getElementById('dw-nombre')?.value?.trim() || DW.nombre;
+    DW.descripcion= document.getElementById('dw-desc')?.value || DW.descripcion;
+    DW.responsable= document.getElementById('dw-resp')?.value || DW.responsable;
+    DW.color      = document.getElementById('dw-color')?.value || DW.color;
+  }
+  if (DW.activePhase === 'riskScoring') {
+    const aprR = document.getElementById('dw-apr-reducida');
+    const aprA = document.getElementById('dw-apr-ampliada');
+    if (aprR) DW.cuestionario.riskScoring.aprobadores.reducida = aprR.value;
+    if (aprA) DW.cuestionario.riskScoring.aprobadores.ampliada = aprA.value;
+  }
+}
+
+async function dwSaveDraft() {
+  dwCollectCurrentPhase();
+  if (!DW.nombre) { notify('El nombre del dominio es obligatorio', 'error'); DW.activePhase='info'; document.getElementById('dw-body').innerHTML=renderDWBody(); return; }
+  const dup = state.data.ambitos.find(a=>a.nombre.toLowerCase()===DW.nombre.toLowerCase() && a.id!==DW.id);
+  if (dup) { notify('Ya existe un dominio con ese nombre', 'error'); return; }
+  await dwPersist(true);
+  notify('💾 Borrador guardado');
+}
+
+async function dwPublish() {
+  dwCollectCurrentPhase();
+  if (!DW.nombre) { notify('El nombre del dominio es obligatorio', 'error'); DW.activePhase='info'; document.getElementById('dw-body').innerHTML=renderDWBody(); return; }
+  const dup = state.data.ambitos.find(a=>a.nombre.toLowerCase()===DW.nombre.toLowerCase() && a.id!==DW.id);
+  if (dup) { notify('Ya existe un dominio con ese nombre', 'error'); return; }
+  // Validate minimum questions
+  const sc = DW.cuestionario.scopeCheck.preguntas.length;
+  const rs = DW.cuestionario.riskScoring.preguntas.length;
+  if (!sc || !rs) {
+    if (!confirm(`⚠️ El dominio tiene ${!sc?'Scope Check':''}${!sc&&!rs?' y ':''}${!rs?'Risk Scoring':''} sin preguntas.\n¿Publicar igualmente?`)) return;
+  }
+  await dwPersist(false);
+  notify(`✅ Dominio "${DW.nombre}" ${DW.id ? 'actualizado' : 'publicado'}`);
+  closeModal();
+  renderAmbitos();
+}
+
+async function dwPersist(asBorrador) {
+  // Auto-add new questions to biblioteca
+  const allPhases = ['scopeCheck','riskScoring','ddReducida','ddAmpliada'];
+  allPhases.forEach(phase => {
+    (DW.cuestionario[phase].preguntas||[]).forEach(p => {
+      if (!p.origenId) {
+        // Check if already in biblioteca
+        const inBib = (state.data.biblioteca||[]).find(b => b.id === p.id);
+        if (!inBib && p.texto?.trim()) {
+          const bibEntry = {
+            id: p.id,
+            texto: p.texto,
+            tipo: p.tipo,
+            opciones: JSON.parse(JSON.stringify(p.opciones||[])),
+            etiquetas: [DW.nombre.toLowerCase()],
+            creadoEn: DW.id || 'new',
+            fase: phase
+          };
+          state.data.biblioteca = state.data.biblioteca || [];
+          state.data.biblioteca.push(bibEntry);
+          saveItem('biblioteca_preguntas', bibEntry);
+        }
+      }
+    });
+  });
+
+  const item = {
+    id: DW.id || genId(),
+    nombre: DW.nombre,
+    descripcion: DW.descripcion,
+    responsable: DW.responsable,
+    color: DW.color,
+    borrador: asBorrador,
+    cuestionario: DW.cuestionario
+  };
+  if (!DW.id) DW.id = item.id;
+  // Update creadoEn in biblioteca entries
+  state.data.biblioteca.forEach(b => { if (b.creadoEn === 'new') b.creadoEn = item.id; });
+  await saveItem('ambitos', item);
+}
+
+// ── BIBLIOTECA DE PREGUNTAS ────────────────────────────────────
+function renderBiblioteca() {
+  const bib = state.data.biblioteca || [];
+  document.getElementById('content').innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">Biblioteca de Preguntas</div>
+        <div class="section-sub">${bib.length} preguntas · Se construye automáticamente al crear cuestionarios</div>
+      </div>
+    </div>
+    <div class="toolbar" style="margin-bottom:16px">
+      <div class="search-bar" style="flex:1;max-width:320px">${SVG.search}
+        <input placeholder="Buscar pregunta..." oninput="bibFilter=this.value;renderBiblioteca()" value="${bibFilter||''}">
+      </div>
+    </div>
+    ${!bib.length ? `
+      <div class="empty-state">
+        <p>La biblioteca está vacía. Se irá llenando automáticamente cuando crees preguntas en los dominios.</p>
+      </div>` : `
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Pregunta</th><th>Tipo</th><th>Opciones</th><th>Dominio origen</th><th>Fase</th></tr></thead>
+          <tbody>
+            ${bib.filter(b=>!bibFilter||b.texto.toLowerCase().includes(bibFilter.toLowerCase())).map(b => {
+              const dominio = state.data.ambitos.find(a=>a.id===b.creadoEn);
+              const faseLabel = {scopeCheck:'Scope Check',riskScoring:'Risk Scoring',ddReducida:'DD Reducida',ddAmpliada:'DD Ampliada'}[b.fase]||b.fase||'—';
+              return `<tr>
+                <td style="max-width:400px"><div style="font-size:13px;color:var(--text)">${b.texto}</div></td>
+                <td><span class="badge badge-blue">${b.tipo==='select_unico'?'Opción única':'Abierta'}</span></td>
+                <td style="color:var(--text3)">${b.opciones?.length||0} opciones</td>
+                <td>${dominio ? `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:${dominio.color}"></span>${dominio.nombre}</span>` : '—'}</td>
+                <td><span class="badge badge-gray">${faseLabel}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`}
+  `;
+}
+let bibFilter = '';
+
+// Keep old saveAmbito/showAmbitoModal as stubs for backward compat
+function showAmbitoModal(id) { openDomainWizard(id); }
+async function saveAmbito(id) {}
+async function deleteAmbito(id) { await deleteDominio(id); }
 
 // ══════════════════════════════════════════════════════════════
 //  TIPOS DE TERCERO
