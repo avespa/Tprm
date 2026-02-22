@@ -359,6 +359,38 @@
   .threshold-box { background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center; }
   .threshold-box-label { font-size:11px;font-weight:600;margin-bottom:8px; }
   .threshold-box input { width:52px;text-align:center; }
+
+  /* HOMOLOGACIÓN V2 */
+  .hom-domain-table { width:100%;border-collapse:collapse; }
+  .hom-domain-table th { font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;text-align:left;border-bottom:2px solid var(--border2); }
+  .hom-domain-table td { padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle; }
+  .hom-domain-table tr:last-child td { border-bottom:none; }
+  .hom-domain-table tr:hover td { background:var(--surface2); }
+
+  .dom-fase-cell { display:flex;align-items:center;gap:6px;font-size:12px; }
+  .dom-fase-pill { padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .dom-fase-pending   { background:var(--surface3);color:var(--text3); }
+  .dom-fase-draft     { background:var(--amber-soft);color:var(--amber); }
+  .dom-fase-done      { background:var(--green-soft);color:var(--green); }
+  .dom-fase-noapply   { background:var(--surface3);color:var(--text3);text-decoration:line-through; }
+  .dom-fase-required  { background:var(--red-soft);color:var(--red); }
+
+  .hom-session-modal { max-width:920px;height:90vh;display:flex;flex-direction:column; }
+  .hom-domain-tabs { display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0; }
+  .hom-domain-tab { padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px; }
+  .hom-domain-tab:hover { color:var(--text); }
+  .hom-domain-tab.active { color:var(--accent);border-bottom-color:var(--accent);font-weight:600; }
+  .hom-domain-tab .dom-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+  .hom-domain-tab .tab-status { font-size:10px;padding:1px 6px;border-radius:8px; }
+
+  .autosave-indicator { font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px; }
+
+  .linked-q-overlay { opacity:.55;pointer-events:none;position:relative; }
+  .linked-q-badge { position:absolute;top:50%;right:10px;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:4px;font-size:10px;padding:2px 7px;color:var(--text3);pointer-events:none; }
+
+  .dd-section-divider { display:flex;align-items:center;gap:10px;margin:16px 0 10px; }
+  .dd-section-divider-line { flex:1;height:1px;background:var(--border2); }
+  .dd-section-divider-label { font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);white-space:nowrap;padding:2px 8px;border:1px solid var(--border2);border-radius:4px; }
 </style>
 </head>
 <body>
@@ -473,10 +505,10 @@ const state = {
   currentPage: 'dashboard',
   data: {
     terceros: [
-      { id:'t1', nombre:'Accenture Spain', denominacion:'Accenture S.L.', grupo:'Accenture PLC', cif:'B82387770', domicilio:'Av. de Bruselas 35, Alcobendas', pais:'España', representante:'José García', responsable:'María Pérez', tipo:'Proveedor Directo', ambitos:['Cyber','Data Protection','IA'], fechaPrimera:'2022-03-15', fechaSiguiente:'2025-03-15', fechaUltima:'2024-03-15', riesgo:'medio', comentarios:'Proveedor estratégico de TI', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
-      { id:'t2', nombre:'Deloitte Advisory', denominacion:'Deloitte Advisory S.L.', grupo:'Deloitte Global', cif:'B79835397', domicilio:'Plaza Pablo Ruiz Picasso 1, Madrid', pais:'España', representante:'Ana López', responsable:'Carlos Ruiz', tipo:'Proveedor Directo', ambitos:['Compliance','Fiscal','ESG'], fechaPrimera:'2021-06-01', fechaSiguiente:'2024-06-01', fechaUltima:'2023-06-01', riesgo:'bajo', comentarios:'', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
-      { id:'t3', nombre:'Amazon Web Services', denominacion:'Amazon Web Services EMEA SARL', grupo:'Amazon Inc', cif:'B67890123', domicilio:'38 Av JF Kennedy, Luxemburgo', pais:'Luxemburgo', representante:'Peter Schmidt', responsable:'Laura Torres', tipo:'Proveedor Directo', ambitos:['Cyber','Data Protection'], fechaPrimera:'2023-01-10', fechaSiguiente:'2025-01-10', fechaUltima:'2024-01-10', riesgo:'alto', comentarios:'Procesamiento datos críticos', remediacion:'Realizar auditoría de seguridad Q2 2025', remediacionUser:'laura.torres@empresa.com', remediacionFecha:'2025-06-30', activo:true },
-      { id:'t4', nombre:'Carrefour España', denominacion:'Carrefour España S.A.', grupo:'Carrefour Group', cif:'A28375103', domicilio:'C/ Campezo 16, Madrid', pais:'España', representante:'Philippe Dumont', responsable:'Ignacio Sanz', tipo:'Cliente', ambitos:['EUDR','ESG'], fechaPrimera:'2020-09-01', fechaSiguiente:'2025-09-01', fechaUltima:'2023-09-01', riesgo:'sin valorar', comentarios:'', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
+      { id:'t1', nombre:'Accenture Spain', denominacion:'Accenture S.L.', grupo:'Accenture PLC', cif:'B82387770', domicilio:'Av. de Bruselas 35, Alcobendas', pais:'España', representante:'José García', responsable:'María Pérez', tipo:'Proveedor Directo', fechaPrimera:'2022-03-15', fechaSiguiente:'2025-03-15', fechaUltima:'2024-03-15', riesgo:'medio', comentarios:'Proveedor estratégico de TI', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
+      { id:'t2', nombre:'Deloitte Advisory', denominacion:'Deloitte Advisory S.L.', grupo:'Deloitte Global', cif:'B79835397', domicilio:'Plaza Pablo Ruiz Picasso 1, Madrid', pais:'España', representante:'Ana López', responsable:'Carlos Ruiz', tipo:'Proveedor Directo', fechaPrimera:'2021-06-01', fechaSiguiente:'2024-06-01', fechaUltima:'2023-06-01', riesgo:'bajo', comentarios:'', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
+      { id:'t3', nombre:'Amazon Web Services', denominacion:'Amazon Web Services EMEA SARL', grupo:'Amazon Inc', cif:'B67890123', domicilio:'38 Av JF Kennedy, Luxemburgo', pais:'Luxemburgo', representante:'Peter Schmidt', responsable:'Laura Torres', tipo:'Proveedor Directo', fechaPrimera:'2023-01-10', fechaSiguiente:'2025-01-10', fechaUltima:'2024-01-10', riesgo:'alto', comentarios:'Procesamiento datos críticos', remediacion:'Realizar auditoría de seguridad Q2 2025', remediacionUser:'laura.torres@empresa.com', remediacionFecha:'2025-06-30', activo:true },
+      { id:'t4', nombre:'Carrefour España', denominacion:'Carrefour España S.A.', grupo:'Carrefour Group', cif:'A28375103', domicilio:'C/ Campezo 16, Madrid', pais:'España', representante:'Philippe Dumont', responsable:'Ignacio Sanz', tipo:'Cliente', fechaPrimera:'2020-09-01', fechaSiguiente:'2025-09-01', fechaUltima:'2023-09-01', riesgo:'sin valorar', comentarios:'', remediacion:'', remediacionUser:'', remediacionFecha:'', activo:true },
     ],
     usuarios: [
       { id:'u1', nombre:'Admin Usuario', email:'admin@empresa.com', roles:['admin'], activo:true },
@@ -1649,12 +1681,11 @@ function openDomainWizard(id) {
     responsable: d?.responsable || '',
     color: d?.color || '#3b82f6',
     borrador: d ? d.borrador : true,
-    activePhase: 'scopeCheck',
+    activePhase: 'info',
     cuestionario: d?.cuestionario ? JSON.parse(JSON.stringify(d.cuestionario)) : {
       scopeCheck:  { preguntas:[], umbralMaterial:1 },
       riskScoring: { preguntas:[], umbrales:{sinDD:{max:1},reducida:{min:2,max:4},ampliada:{min:5}}, bloqueoRedFlag:true, aprobadores:{reducida:'',ampliada:''} },
-      ddReducida:  { preguntas:[] },
-      ddAmpliada:  { preguntas:[] }
+      dd:          { preguntas:[] }
     }
   };
   renderDomainWizardModal();
@@ -1685,11 +1716,10 @@ function renderDomainWizardModal() {
 function renderDWBody() {
   const cq = DW.cuestionario;
   const phases = [
-    { key:'info',       label:'📋 Información', count:null },
-    { key:'scopeCheck', label:'🔍 Scope Check', count:(cq.scopeCheck.preguntas||[]).length },
-    { key:'riskScoring',label:'📊 Risk Scoring', count:(cq.riskScoring.preguntas||[]).length },
-    { key:'ddReducida', label:'📄 DD Reducida',  count:(cq.ddReducida.preguntas||[]).length },
-    { key:'ddAmpliada', label:'📋 DD Ampliada',  count:(cq.ddAmpliada.preguntas||[]).length },
+    { key:'info',        label:'📋 Información', count:null },
+    { key:'scopeCheck',  label:'🔍 Scope Check', count:(cq.scopeCheck.preguntas||[]).length },
+    { key:'riskScoring', label:'📊 Risk Scoring', count:(cq.riskScoring.preguntas||[]).length },
+    { key:'dd',          label:'📄 Due Diligence', count:(cq.dd?.preguntas||[]).length },
   ];
 
   return `
@@ -1704,8 +1734,7 @@ function renderDWBody() {
       ${DW.activePhase === 'info' ? renderDWInfo() :
         DW.activePhase === 'scopeCheck'  ? renderDWQuestions('scopeCheck') :
         DW.activePhase === 'riskScoring' ? renderDWRiskScoring() :
-        DW.activePhase === 'ddReducida'  ? renderDWQuestions('ddReducida') :
-        renderDWQuestions('ddAmpliada')}
+        renderDWQuestions('dd')}
     </div>`;
 }
 
@@ -1768,20 +1797,19 @@ function dwCheckDup(val) {
 }
 
 function renderDWQuestions(phase) {
-  const preguntas = DW.cuestionario[phase].preguntas || [];
-  const phaseLabels = { scopeCheck:'Scope Check', ddReducida:'DD Reducida', ddAmpliada:'DD Ampliada' };
+  const preguntas = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
+  const phaseLabels = { scopeCheck:'Scope Check', dd:'Due Diligence' };
   const libSuggestions = getBibliotecaSuggestions(phase, '');
 
   return `
     <div class="builder-layout">
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
           <div>
-            <div style="font-weight:600;font-size:14px">${phaseLabels[phase]}</div>
+            <div style="font-weight:600;font-size:14px">${phaseLabels[phase]||phase}</div>
             <div style="font-size:11px;color:var(--text3);margin-top:2px">
-              ${phase==='scopeCheck' ? 'Determina si el tercero es material para este dominio. Umbral configurable.' :
-                phase==='ddReducida' ? 'Preguntas para DD cuando el Risk Scoring resulta en nivel medio.' :
-                'Preguntas completas para DD cuando el Risk Scoring resulta en nivel alto.'}
+              ${phase==='scopeCheck' ? 'Determina si el tercero es material para este dominio.' :
+                phase==='dd' ? 'Preguntas de Due Diligence. Marca <strong>Solo Ampliada</strong> en las que solo apliquen cuando el Risk Scoring sea alto.' : ''}
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('${phase}')">${SVG.plus} Añadir pregunta</button>
@@ -1792,6 +1820,11 @@ function renderDWQuestions(phase) {
             <input class="form-input" id="dw-umbral" type="number" min="1" value="${DW.cuestionario.scopeCheck.umbralMaterial||1}"
               style="width:70px" onchange="DW.cuestionario.scopeCheck.umbralMaterial=+this.value">
             <span style="font-size:11px;color:var(--accent)">puntos mínimos para considerar material</span>
+          </div>` : ''}
+        ${phase === 'dd' && preguntas.some(p=>!p.soloAmpliada) ? `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--green-soft);border-radius:var(--radius-sm);font-size:11px;color:var(--green)">
+            🟡 <strong>DD Reducida</strong>: preguntas sin marca · 
+            🔴 <strong>DD Ampliada</strong>: todas las preguntas
           </div>` : ''}
         <div id="dw-qlist-${phase}">
           ${preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
@@ -1862,21 +1895,27 @@ function renderDWQuestionCard(p, idx, phase) {
           style="margin-bottom:6px">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select class="form-select" style="width:auto;font-size:12px"
-            onchange="DW.cuestionario['${phase}'].preguntas[${idx}].tipo=this.value">
+            onchange="DW.cuestionario['${phase}'].preguntas[${idx}].tipo=this.value;dwRefreshQList('${phase}')">
             <option value="select_unico" ${p.tipo==='select_unico'?'selected':''}>Opción única</option>
+            <option value="select_multiple" ${p.tipo==='select_multiple'?'selected':''}>Opción múltiple</option>
             <option value="abierta" ${p.tipo==='abierta'?'selected':''}>Abierta</option>
           </select>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer">
             <input type="checkbox" ${p.obligatoria?'checked':''} onchange="DW.cuestionario['${phase}'].preguntas[${idx}].obligatoria=this.checked"> Obligatoria
           </label>
           ${isFromLib ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-glow);color:var(--accent)">📚 Copia de biblioteca</span>` : ''}
+          ${phase === 'dd' ? `<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid ${p.soloAmpliada?'var(--red)':'var(--border)'};background:${p.soloAmpliada?'var(--red-soft)':'transparent'};color:${p.soloAmpliada?'var(--red)':'var(--text3)'}" title="Solo aparece en DD Ampliada">
+            <input type="checkbox" ${p.soloAmpliada?'checked':''} onchange="DW.cuestionario['dd'].preguntas[${idx}].soloAmpliada=this.checked;dwRefreshQList('dd')"> Solo Ampliada
+          </label>` : ''}
           <button class="btn btn-danger btn-icon btn-sm" style="margin-left:auto" onclick="dwDeleteQuestion('${phase}',${idx})">${SVG.trash}</button>
         </div>
       </div>
     </div>
     ${p.tipo !== 'abierta' ? `
       <div style="margin-left:30px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Opciones de respuesta:</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+          Opciones de respuesta${p.tipo==='select_multiple'?' <span style="color:var(--accent)">(múltiple — el evaluador puede marcar varias)</span>':''}:
+        </div>
         <div id="dw-opts-${phase}-${idx}">
           ${(p.opciones||[]).map((o,oi)=>renderDWOption(o,oi,phase,idx)).join('')}
         </div>
@@ -1902,63 +1941,67 @@ function renderDWOption(o, oi, phase, qi) {
 }
 
 function dwAddQuestion(phase) {
-  DW.cuestionario[phase].preguntas.push({
-    id: genId(), texto:'', tipo:'select_unico', obligatoria:true, opciones:[
-      {texto:'Sí',valor:3,flag:false},{texto:'No',valor:0,flag:true}
-    ], origenId:null
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  if (!target) return;
+  target.preguntas.push({
+    id: genId(), texto:'', tipo:'select_unico', obligatoria:true,
+    soloAmpliada: false,
+    opciones:[{texto:'Sí',valor:3,flag:false},{texto:'No',valor:0,flag:true}],
+    origenId:null
   });
   dwRefreshQList(phase);
 }
 
 function dwDeleteQuestion(phase, idx) {
-  const p = DW.cuestionario[phase].preguntas[idx];
-  // Check if this question was copied to other domains
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  const p = target.preguntas[idx];
   const copias = (state.data.ambitos||[]).flatMap(a => {
-    const all = [...(a.cuestionario?.scopeCheck?.preguntas||[]),...(a.cuestionario?.riskScoring?.preguntas||[]),...(a.cuestionario?.ddReducida?.preguntas||[]),...(a.cuestionario?.ddAmpliada?.preguntas||[])];
-    return all.filter(q => q.origenId === p.id).map(q => a.nombre);
+    const all = [...(a.cuestionario?.scopeCheck?.preguntas||[]),...(a.cuestionario?.riskScoring?.preguntas||[]),...(a.cuestionario?.dd?.preguntas||[])];
+    return all.filter(q => q.origenId === p.id).map(() => a.nombre);
   });
   const enBib = (state.data.biblioteca||[]).find(b => b.id === p.id || b.origenId === p.id);
   if (copias.length || enBib) {
     if (!confirm(`⚠️ Esta pregunta está vinculada:\n${copias.length ? '- Copiada en: ' + [...new Set(copias)].join(', ') : ''}\n${enBib ? '- Existe en la biblioteca' : ''}\n\n¿Confirmar eliminación?`)) return;
   }
-  DW.cuestionario[phase].preguntas.splice(idx, 1);
+  target.preguntas.splice(idx, 1);
   dwRefreshQList(phase);
 }
 
 function dwAddOption(phase, qi) {
-  DW.cuestionario[phase].preguntas[qi].opciones.push({texto:'',valor:0,flag:false});
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  target.preguntas[qi].opciones.push({texto:'',valor:0,flag:false});
   dwRefreshQList(phase);
 }
 
 function dwDeleteOption(phase, qi, oi) {
-  DW.cuestionario[phase].preguntas[qi].opciones.splice(oi, 1);
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  target.preguntas[qi].opciones.splice(oi, 1);
   dwRefreshQList(phase);
 }
 
 function dwRefreshQList(phase) {
   const el = document.getElementById(`dw-qlist-${phase}`);
   if (!el) return;
-  const preguntas = DW.cuestionario[phase].preguntas;
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  const preguntas = target?.preguntas || [];
   el.innerHTML = preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
     `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
       <p style="font-size:13px">Sin preguntas. Añade una nueva o copia de la biblioteca.</p>
     </div>`;
-  // Update tab count
   dwRefreshTabCounts();
 }
 
 function dwRefreshTabCounts() {
   const cq = DW.cuestionario;
   const counts = {
-    scopeCheck: (cq.scopeCheck.preguntas||[]).length,
-    riskScoring:(cq.riskScoring.preguntas||[]).length,
-    ddReducida: (cq.ddReducida.preguntas||[]).length,
-    ddAmpliada: (cq.ddAmpliada.preguntas||[]).length,
+    scopeCheck:  (cq.scopeCheck?.preguntas||[]).length,
+    riskScoring: (cq.riskScoring?.preguntas||[]).length,
+    dd:          (cq.dd?.preguntas||[]).length,
   };
-  Object.entries(counts).forEach(([phase, count]) => {
-    const tabs = document.querySelectorAll('.phase-tab');
-    tabs.forEach(tab => {
-      if (tab.getAttribute('onclick')?.includes(phase)) {
+  document.querySelectorAll('.phase-tab').forEach(tab => {
+    const onclick = tab.getAttribute('onclick') || '';
+    Object.entries(counts).forEach(([phase, count]) => {
+      if (onclick.includes(`'${phase}'`)) {
         const badge = tab.querySelector('.tab-count');
         if (badge) badge.textContent = count;
       }
@@ -2106,22 +2149,14 @@ async function dwPublish() {
 
 async function dwPersist(asBorrador) {
   // Auto-add new questions to biblioteca
-  const allPhases = ['scopeCheck','riskScoring','ddReducida','ddAmpliada'];
+  const allPhases = ['scopeCheck','riskScoring','dd'];
   allPhases.forEach(phase => {
-    (DW.cuestionario[phase].preguntas||[]).forEach(p => {
-      if (!p.origenId) {
-        // Check if already in biblioteca
+    const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+    (target?.preguntas||[]).forEach(p => {
+      if (!p.origenId && p.texto?.trim()) {
         const inBib = (state.data.biblioteca||[]).find(b => b.id === p.id);
-        if (!inBib && p.texto?.trim()) {
-          const bibEntry = {
-            id: p.id,
-            texto: p.texto,
-            tipo: p.tipo,
-            opciones: JSON.parse(JSON.stringify(p.opciones||[])),
-            etiquetas: [DW.nombre.toLowerCase()],
-            creadoEn: DW.id || 'new',
-            fase: phase
-          };
+        if (!inBib) {
+          const bibEntry = { id:p.id, texto:p.texto, tipo:p.tipo, opciones:JSON.parse(JSON.stringify(p.opciones||[])), etiquetas:[DW.nombre.toLowerCase()], creadoEn:DW.id||'new', fase:phase };
           state.data.biblioteca = state.data.biblioteca || [];
           state.data.biblioteca.push(bibEntry);
           saveItem('biblioteca_preguntas', bibEntry);
@@ -2130,18 +2165,9 @@ async function dwPersist(asBorrador) {
     });
   });
 
-  const item = {
-    id: DW.id || genId(),
-    nombre: DW.nombre,
-    descripcion: DW.descripcion,
-    responsable: DW.responsable,
-    color: DW.color,
-    borrador: asBorrador,
-    cuestionario: DW.cuestionario
-  };
+  const item = { id:DW.id||genId(), nombre:DW.nombre, descripcion:DW.descripcion, responsable:DW.responsable, color:DW.color, borrador:asBorrador, cuestionario:DW.cuestionario };
   if (!DW.id) DW.id = item.id;
-  // Update creadoEn in biblioteca entries
-  state.data.biblioteca.forEach(b => { if (b.creadoEn === 'new') b.creadoEn = item.id; });
+  state.data.biblioteca.forEach(b => { if (b.creadoEn==='new') b.creadoEn=item.id; });
   await saveItem('ambitos', item);
 }
 
@@ -3140,134 +3166,855 @@ function hwRefreshHeader() {
 // ══════════════════════════════════════════════════════════════
 //  HOMOLOGACIÓN — wizard
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  HOMOLOGACIÓN V2 — motor por dominios
+// ══════════════════════════════════════════════════════════════
 let HW = {};
+let hwAutosaveTimer = null;
 
-function iniciarHom(terceroId) {
+// ── Helpers ──────────────────────────────────────────────────
+function getDominiosActivos() {
+  return (state.data.ambitos||[]).filter(a => !a.borrador);
+}
+
+function homGetOrCreate(terceroId) {
   const tercero = state.data.terceros.find(t => t.id === terceroId);
-  if (!tercero) return;
+  if (!tercero) return null;
   let hom = getActiveHom(terceroId);
   if (!hom) {
+    const dominios = {};
+    getDominiosActivos().forEach(d => {
+      dominios[d.id] = {
+        scopeResultado: 'pendiente',    // pendiente | material | no_aplica
+        riskScoring: { estado:'pendiente', respuestas:{}, score:0, resultado:'', nivel:'', hasFlag:false },
+        dd: { estado:'pendiente', respuestas:{}, score:0, resultado:'', hasFlag:false },
+        aprobacion: { estado:'pendiente', aprobadoPor:'', fecha:'', comentario:'' }
+      };
+    });
     hom = {
-      id: genId(), terceroId, terceroNombre: tercero.nombre, fase: 'scope_check',
-      fechaInicio: new Date().toISOString().split('T')[0], fechaCierre: '',
-      scopeCheck:   { respuestas:{}, score:0, resultado:'' },
-      riskScoring:  { respuestas:{}, score:0, resultado:'', hasFlag:false },
-      dueDiligence: { nivel:'', cuestionariosOrder:[], respuestasPorCuestionario:{}, resultadoPorCuestionario:{}, resultadoFinal:'', cuestionarioActual:0 },
-      aprobacion:   { estado:'', aprobadoPor:'', fecha:'', comentario:'' },
-      riesgoFinal: '', creadoPor: 'Admin Usuario'
+      id: genId(), terceroId, terceroNombre: tercero.nombre,
+      estadoGlobal: 'en_curso',
+      fechaInicio: new Date().toISOString().split('T')[0], fechaCierre:'',
+      scopeCheck: { estado:'pendiente', respuestasPorDominio:{} },
+      dominios,
+      riesgoFinal:'', creadoPor:'Admin Usuario'
     };
+    state.data.homologaciones.push(hom);
   }
-  HW = { hom, tercero };
-  renderHW();
+  return hom;
 }
 
-function renderHW() {
-  const h = HW.hom;
-  const faseIdx = { scope_check:0, risk_scoring:1, due_diligence:2, aprobacion:3, completada:4 };
-  const ci = faseIdx[h.fase] ?? 0;
-  const faseNames = ['Scope Check','Risk Scoring','Due Diligence','Aprobación','Completada'];
-  const fases = ['scope_check','risk_scoring','due_diligence','aprobacion','completada'];
-  const steps = fases.map((f,i) => {
-    const done = i < ci, active = i === ci;
-    const bg = active ? 'var(--accent)' : done ? 'var(--green)' : 'var(--surface3)';
-    const col = active ? 'var(--accent)' : done ? 'var(--green)' : 'var(--text3)';
-    const wc = active || done ? 'white' : 'var(--text3)';
-    return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:${col}">
-      <div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:${bg};color:${wc}">${done?'✓':i+1}</div>
-      ${faseNames[i]}${i<4?'<span style="color:var(--border2);margin-left:5px">›</span>':''}
+function homGetDDNivel(domId, hom) {
+  const rs = hom.dominios[domId]?.riskScoring;
+  if (!rs || rs.estado !== 'completado') return null;
+  return rs.nivel; // sinDD | reducida | ampliada
+}
+
+function homCalcRSNivel(dominio, score, hasFlag) {
+  const u = dominio.cuestionario?.riskScoring?.umbrales || { sinDD:{max:1}, reducida:{min:2,max:4}, ampliada:{min:5} };
+  if (hasFlag && dominio.cuestionario?.riskScoring?.bloqueoRedFlag) return 'ampliada';
+  if (score <= (u.sinDD?.max ?? 1))    return 'sinDD';
+  if (score <= (u.reducida?.max ?? 4)) return 'reducida';
+  return 'ampliada';
+}
+
+function homCalcScoreGeneric(preguntas, respuestas) {
+  let score = 0, hasFlag = false;
+  preguntas.forEach(p => {
+    const resp = respuestas[p.id];
+    if (Array.isArray(resp)) {
+      resp.forEach(r => {
+        const op = (p.opciones||[]).find(o => o.texto === r);
+        if (op) { score += op.valor||0; if (op.flag) hasFlag = true; }
+      });
+    } else if (resp) {
+      const op = (p.opciones||[]).find(o => o.texto === resp);
+      if (op) { score += op.valor||0; if (op.flag) hasFlag = true; }
+    }
+  });
+  return { score, hasFlag };
+}
+
+function homGlobalStatus(hom) {
+  const doms = Object.values(hom.dominios||{});
+  if (!doms.length) return 'sin_dominios';
+  if (hom.scopeCheck.estado !== 'completado') return 'scope_check';
+  const materiales = Object.entries(hom.dominios).filter(([,d]) => d.scopeResultado === 'material');
+  if (!materiales.length) return 'completada'; // todos fuera de scope
+  const rsIncompleto = materiales.some(([,d]) => d.riskScoring.estado === 'pendiente');
+  if (rsIncompleto) return 'risk_scoring';
+  const necesitanDD = materiales.filter(([,d]) => d.riskScoring.nivel !== 'sinDD');
+  const ddIncompleta = necesitanDD.some(([,d]) => d.dd.estado !== 'completado');
+  if (ddIncompleta) return 'due_diligence';
+  const necesitanAprobacion = necesitanDD.filter(([id,d]) => {
+    const dom = state.data.ambitos.find(a => a.id === id);
+    const aprobador = dom?.cuestionario?.riskScoring?.aprobadores?.[d.riskScoring.nivel];
+    return aprobador && d.aprobacion.estado !== 'aprobado';
+  });
+  if (necesitanAprobacion.length) return 'aprobacion';
+  return 'completada';
+}
+
+// ── Autosave ──────────────────────────────────────────────────
+function hwStartAutosave() {
+  hwStopAutosave();
+  hwAutosaveTimer = setInterval(async () => {
+    if (HW.hom) {
+      await saveItem('homologaciones', HW.hom);
+      const el = document.getElementById('hw-autosave');
+      if (el) { el.textContent = '✓ Guardado ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+    }
+  }, 5000);
+}
+function hwStopAutosave() {
+  if (hwAutosaveTimer) { clearInterval(hwAutosaveTimer); hwAutosaveTimer = null; }
+}
+
+// ── Main entry ────────────────────────────────────────────────
+function iniciarHom(terceroId) {
+  const hom = homGetOrCreate(terceroId);
+  if (!hom) return;
+  const tercero = state.data.terceros.find(t => t.id === terceroId);
+  HW = { hom, tercero, activeDomTab: null };
+  // Sync any new active domains into existing homologacion
+  getDominiosActivos().forEach(d => {
+    if (!hom.dominios[d.id]) {
+      hom.dominios[d.id] = { scopeResultado:'pendiente', riskScoring:{estado:'pendiente',respuestas:{},score:0,resultado:'',nivel:'',hasFlag:false}, dd:{estado:'pendiente',respuestas:{},score:0,resultado:'',hasFlag:false}, aprobacion:{estado:'pendiente',aprobadoPor:'',fecha:'',comentario:''} };
+    }
+  });
+  openHWPanel();
+}
+
+function openHWPanel() {
+  openModal(`
+    <div class="modal hom-session-modal">
+      <div class="modal-header" style="flex-shrink:0">
+        <div style="flex:1">
+          <div class="modal-title">Homologación — ${HW.tercero.nombre}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Iniciada ${fmtDate(HW.hom.fechaInicio)}</div>
+        </div>
+        <span class="autosave-indicator" id="hw-autosave">—</span>
+        <button class="btn btn-ghost btn-icon" style="margin-left:12px" onclick="hwClose()">${SVG.x}</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px 24px" id="hw-body">
+        ${renderHWBody()}
+      </div>
+    </div>
+  `);
+  hwStartAutosave();
+}
+
+function hwClose() {
+  hwStopAutosave();
+  if (HW.hom) saveItem('homologaciones', HW.hom);
+  closeModal();
+  if (state.currentPage === 'homologaciones') renderHomologaciones();
+  if (state.currentPage === 'terceros') renderTerceros();
+}
+
+function renderHWBody() {
+  const hom = HW.hom;
+  const dominiosActivos = getDominiosActivos();
+  const status = homGlobalStatus(hom);
+
+  // ── Resumen de estado por dominio (tabla principal) ─────────
+  const tableRows = dominiosActivos.map(d => {
+    const domData = hom.dominios[d.id] || {};
+    const sc = domData.scopeResultado;
+    const rs = domData.riskScoring;
+    const dd = domData.dd;
+    const apr = domData.aprobacion;
+
+    const scCell = sc === 'material'  ? `<span class="dom-fase-pill dom-fase-done">✓ Material</span>` :
+                   sc === 'no_aplica' ? `<span class="dom-fase-pill dom-fase-noapply">Fuera de scope</span>` :
+                   hom.scopeCheck.estado === 'en_curso' ? `<span class="dom-fase-pill dom-fase-draft">En curso</span>` :
+                   `<span class="dom-fase-pill dom-fase-pending">Pendiente</span>`;
+
+    const rsCell = sc !== 'material' ? '<span style="color:var(--text3)">—</span>' :
+                   rs.estado === 'completado' ? `<span class="dom-fase-pill dom-fase-done">${rs.nivel === 'sinDD' ? '✓ Sin DD' : rs.nivel === 'reducida' ? '🟡 Reducida' : '🔴 Ampliada'}</span>` :
+                   rs.estado === 'borrador' ? `<span class="dom-fase-pill dom-fase-draft">Borrador</span>` :
+                   `<span class="dom-fase-pill dom-fase-pending">Pendiente</span>`;
+
+    const ddNecesaria = sc === 'material' && rs.estado === 'completado' && rs.nivel !== 'sinDD';
+    const ddCell = !ddNecesaria ? '<span style="color:var(--text3)">—</span>' :
+                   dd.estado === 'completado' ? `<span class="dom-fase-pill dom-fase-done">✓ Completada</span>` :
+                   dd.estado === 'borrador'   ? `<span class="dom-fase-pill dom-fase-draft">Borrador</span>` :
+                   `<span class="dom-fase-pill dom-fase-required">Pendiente</span>`;
+
+    const domApr = d.cuestionario?.riskScoring?.aprobadores?.[rs.nivel];
+    const aprNecesaria = ddNecesaria && dd.estado === 'completado' && domApr;
+    const aprCell = !aprNecesaria ? '<span style="color:var(--text3)">—</span>' :
+                    apr.estado === 'aprobado' ? `<span class="dom-fase-pill dom-fase-done">✓ ${apr.aprobadoPor}</span>` :
+                    `<span class="dom-fase-pill dom-fase-required">Pendiente</span>`;
+
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${d.color};flex-shrink:0"></span>
+        <span style="font-weight:500;font-size:13px">${d.nombre}</span>
+        ${d.descripcion ? `<span style="font-size:11px;color:var(--text3)">${d.descripcion}</span>` : ''}
+      </div></td>
+      <td>${scCell}</td>
+      <td>${rsCell}</td>
+      <td>${ddCell}</td>
+      <td>${aprCell}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Action buttons ──────────────────────────────────────────
+  const scDone = hom.scopeCheck.estado === 'completado';
+  const rsMateriales = dominiosActivos.filter(d => hom.dominios[d.id]?.scopeResultado === 'material');
+  const rsDone = scDone && rsMateriales.every(d => hom.dominios[d.id]?.riskScoring.estado === 'completado');
+  const ddDomains = rsMateriales.filter(d => hom.dominios[d.id]?.riskScoring.nivel !== 'sinDD');
+  const ddDone = rsDone && ddDomains.every(d => hom.dominios[d.id]?.dd.estado === 'completado');
+  const allApproved = ddDone && dominiosActivos.every(d => {
+    const rs = hom.dominios[d.id]?.riskScoring;
+    const apr = hom.dominios[d.id]?.aprobacion;
+    const domApr = d.cuestionario?.riskScoring?.aprobadores?.[rs?.nivel];
+    return !domApr || apr?.estado === 'aprobado';
+  });
+
+  const isCompleted = hom.estadoGlobal === 'completada';
+
+  const actions = isCompleted ? `
+    <div class="success-box">✅ <strong>Tercero homologado.</strong> Riesgo final: <strong>${(hom.riesgoFinal||'').toUpperCase()}</strong> · Fecha cierre: ${fmtDate(hom.fechaCierre)}</div>
+  ` : `
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn ${scDone?'btn-secondary':'btn-primary'}" onclick="openScopeCheckSession()">
+        🔍 ${hom.scopeCheck.estado === 'en_curso' ? 'Continuar Scope Check' : scDone ? '✓ Scope Check' : 'Iniciar Scope Check'}
+      </button>
+      <button class="btn ${rsDone?'btn-secondary':scDone&&rsMateriales.length?'btn-primary':'btn-ghost'}"
+        ${!scDone||!rsMateriales.length?'disabled':''} onclick="openRiskScoringSession()">
+        📊 ${rsDone ? '✓ Risk Scoring' : 'Risk Scoring'}
+      </button>
+      <button class="btn ${ddDone?'btn-secondary':rsDone&&ddDomains.length?'btn-primary':'btn-ghost'}"
+        ${!rsDone||!ddDomains.length?'disabled':''} onclick="openDDSession()">
+        📋 ${ddDone ? '✓ Due Diligence' : 'Due Diligence'}
+      </button>
+      ${ddDone && !allApproved ? `<button class="btn btn-success" onclick="openAprobacionPanel()">⏳ Gestionar Aprobaciones</button>` : ''}
+      ${allApproved && !isCompleted ? `<button class="btn btn-success" onclick="hwFinalizar()">✅ Finalizar Homologación</button>` : ''}
+    </div>
+  `;
+
+  return `
+    <div style="margin-bottom:20px">
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="hom-domain-table">
+          <thead><tr>
+            <th>Dominio</th>
+            <th>🔍 Scope Check</th>
+            <th>📊 Risk Scoring</th>
+            <th>📋 Due Diligence</th>
+            <th>✅ Aprobación</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>
+    ${actions}
+  `;
+}
+
+// ── SCOPE CHECK SESSION ───────────────────────────────────────
+function openScopeCheckSession() {
+  const dominios = getDominiosActivos().filter(d => (d.cuestionario?.scopeCheck?.preguntas||[]).length > 0);
+  if (!dominios.length) { notify('Ningún dominio activo tiene preguntas de Scope Check configuradas', 'error'); return; }
+  HW.scActiveDom = dominios[0].id;
+  if (!HW.hom.scopeCheck.respuestasPorDominio) HW.hom.scopeCheck.respuestasPorDominio = {};
+  HW.hom.scopeCheck.estado = 'en_curso';
+  openModal(`
+    <div class="modal hom-session-modal">
+      <div class="modal-header" style="flex-shrink:0">
+        <div><div class="modal-title">🔍 Scope Check — ${HW.tercero.nombre}</div>
+          <div style="font-size:11px;color:var(--text3)">Determina qué dominios aplican a este tercero</div>
+        </div>
+        <span class="autosave-indicator" id="hw-autosave-sc">—</span>
+        <button class="btn btn-ghost btn-icon" style="margin-left:12px" onclick="hwCloseSC()">${SVG.x}</button>
+      </div>
+      <div class="hom-domain-tabs" id="sc-tabs">${renderSCTabs(dominios)}</div>
+      <div style="flex:1;overflow-y:auto;padding:20px 24px" id="sc-body">${renderSCBody(dominios)}</div>
+      <div class="modal-footer" style="flex-shrink:0">
+        <div class="autosave-indicator" id="sc-save-status">Borrador guardado automáticamente</div>
+        <button class="btn btn-secondary" onclick="hwCloseSC()">Guardar y cerrar</button>
+        <button class="btn btn-primary" onclick="hwCompletarSC()">${SVG.check} Completar Scope Check</button>
+      </div>
+    </div>
+  `);
+}
+
+function renderSCTabs(dominios) {
+  return dominios.map(d => {
+    const res = HW.hom.dominios[d.id]?.scopeResultado;
+    const icon = res === 'material' ? '✓ ' : res === 'no_aplica' ? '✗ ' : '';
+    const col  = res === 'material' ? 'var(--green)' : res === 'no_aplica' ? 'var(--text3)' : d.color;
+    return `<div class="hom-domain-tab ${HW.scActiveDom===d.id?'active':''}" onclick="scSwitchTab('${d.id}')">
+      <span class="dom-dot" style="background:${col}"></span>${icon}${d.nombre}
     </div>`;
   }).join('');
-  openModal(`<div class="modal" style="max-width:900px;">
-    <div class="modal-header">
-      <div style="flex:1">
-        <div class="modal-title">Homologación: ${HW.tercero.nombre}</div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">${steps}</div>
-      </div>
-      <button class="btn btn-ghost btn-icon" onclick="closeModal()">${SVG.x}</button>
-    </div>
-    <div class="modal-body" id="hw-body">${hwStep()}</div>
-    <div class="modal-footer" id="hw-footer">${hwFooter()}</div>
-  </div>`);
 }
 
-function hwStep() {
-  const h = HW.hom, t = HW.tercero;
-
-  if (h.fase === 'scope_check') {
-    const cq = state.data.cuestionarios.find(c => c.tipo === 'scope_check');
-    if (!cq) return `<div class="warn-box">⚠️ No hay cuestionario de Scope Check configurado. Créalo en la sección Cuestionarios (tipo: Scope Check).</div>`;
-    return `<div class="info-box" style="margin-bottom:16px">🔍 <strong>Scope Check</strong> — Determina si este tercero requiere homologación formal.<br><small style="margin-top:4px;display:block">Umbral de materialidad: puntuación ≥ ${cq.umbralMaterial||2}</small></div>${renderQs(cq, h.scopeCheck.respuestas, 'hw-sc')}`;
-  }
-
-  if (h.fase === 'risk_scoring') {
-    const cq = state.data.cuestionarios.find(c => c.tipo === 'risk_scoring');
-    if (!cq) return `<div class="warn-box">⚠️ No hay cuestionario de Risk Scoring configurado.</div>`;
-    return `<div class="success-box" style="margin-bottom:12px">✅ Scope Check completado — Tercero <strong>material</strong> (puntuación: ${h.scopeCheck.score})</div>
-      <div class="info-box" style="margin-bottom:16px">📊 <strong>Risk Scoring</strong> — Evaluación interna de riesgo inicial.<br><small style="margin-top:4px;display:block">Bajo → Homologación automática · Medio → DD Reducida · Alto → DD Completa</small></div>
-      ${renderQs(cq, h.riskScoring.respuestas, 'hw-rs')}`;
-  }
-
-  if (h.fase === 'due_diligence') {
-    const dd = h.dueDiligence, cuests = getDDCuestionarios(t);
-    if (!cuests.length) return `<div class="warn-box">⚠️ No hay cuestionarios DD configurados para los ámbitos de este tercero.</div>`;
-    const idx = dd.cuestionarioActual||0, cq = cuests[idx];
-    const preguntas = filterByDDLevel(cq.preguntas||[], dd.nivel);
-    const rsColor = h.riskScoring.resultado==='alto'?'var(--red)':h.riskScoring.resultado==='medio'?'var(--amber)':'var(--green)';
-    return `<div style="margin-bottom:16px">
-      <div class="${h.riskScoring.resultado==='bajo'?'success-box':'warn-box'}" style="margin-bottom:10px">📊 Risk Scoring: <strong style="color:${rsColor}">${h.riskScoring.resultado?.toUpperCase()}</strong> → DD <strong>${dd.nivel==='alto'?'Completa':'Reducida'}</strong></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div class="info-box" style="flex:1">📋 <strong>${cq.nombre}</strong>${cq.tipo==='general'?'<span class="badge" style="background:rgba(6,182,212,.12);color:#06b6d4;margin-left:8px">General — siempre primero</span>':''}${dd.nivel!=='alto'&&(cq.preguntas||[]).some(p=>p.soloCompleta)?'<span class="badge" style="background:rgba(139,92,246,.12);color:#8b5cf6;margin-left:8px">Versión reducida</span>':''}</div>
-        <span style="font-size:12px;color:var(--text3);flex-shrink:0">${idx+1} / ${cuests.length}</span>
-      </div>
+function renderSCBody(dominios) {
+  const d = dominios.find(x => x.id === HW.scActiveDom);
+  if (!d) return '';
+  const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+  const respuestas = HW.hom.scopeCheck.respuestasPorDominio[d.id] || {};
+  const umbral = d.cuestionario?.scopeCheck?.umbralMaterial || 1;
+  return `
+    <div class="info-box" style="margin-bottom:16px">
+      <strong style="color:${d.color}">${d.nombre}</strong> — Umbral de materialidad: <strong>${umbral} pts</strong>
     </div>
-    ${renderQs({...cq, preguntas}, dd.respuestasPorCuestionario[cq.id]||{}, 'hw-dd')}`;
-  }
-
-  if (h.fase === 'aprobacion') {
-    const dd = h.dueDiligence, cuests = getDDCuestionarios(t);
-    const resColor = dd.resultadoFinal==='alto'?'var(--red)':dd.resultadoFinal==='medio'?'var(--amber)':'var(--green)';
-    return `<div class="warn-box" style="margin-bottom:16px">⏳ <strong>Pendiente de aprobación.</strong> Resultado DD: <strong style="color:${resColor}">${dd.resultadoFinal?.toUpperCase()}</strong></div>
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">Resumen por cuestionario:</div>
-      ${cuests.map(cq => {
-        const r = dd.resultadoPorCuestionario[cq.id];
-        const cls = r?.resultado==='alto'?'border-color:var(--red);background:rgba(239,68,68,.08)':r?.resultado==='bajo'?'border-color:var(--green);background:rgba(16,185,129,.08)':'border-color:var(--accent);background:var(--accent-glow)';
-        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1px solid var(--border);${cls};margin-bottom:8px">
-          <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:${r?.resultado==='bajo'?'var(--green)':r?.resultado==='alto'?'var(--red)':'var(--accent)'};color:white;flex-shrink:0">${r?.resultado==='bajo'?'✓':r?.resultado==='alto'?'!':'?'}</div>
-          <div style="flex:1"><div style="font-weight:500;font-size:13px">${cq.nombre}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Puntuación: ${r?.score??'—'} · Resultado: ${r?.resultado||'—'}${r?.hasFlag?' 🚩':''}</div></div>
-          ${riskBadge(r?.resultado||'sin valorar')}
-        </div>`;
-      }).join('')}
-      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-      <div class="form-group"><label class="form-label">Comentario de aprobación (opcional)</label><textarea class="form-textarea" id="apr-com" rows="3" placeholder="Observaciones..."></textarea></div>`;
-  }
-
-  if (h.fase === 'completada') {
-    const dd = h.dueDiligence;
-    const resColor = h.riesgoFinal==='alto'?'var(--red)':h.riesgoFinal==='medio'?'var(--amber)':'var(--green)';
-    const ter = state.data.terceros.find(t2 => t2.id === h.terceroId);
-    return `<div class="success-box" style="margin-bottom:20px;font-size:14px">✅ <strong>Homologación completada.</strong> Nivel de riesgo asignado: <strong style="color:${resColor}">${h.riesgoFinal?.toUpperCase()}</strong></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="card" style="padding:14px"><div style="font-size:11px;color:var(--text3)">Fecha inicio</div><div style="font-weight:500;margin-top:4px">${fmtDate(h.fechaInicio)}</div></div>
-        <div class="card" style="padding:14px"><div style="font-size:11px;color:var(--text3)">Fecha cierre</div><div style="font-weight:500;margin-top:4px">${fmtDate(h.fechaCierre)}</div></div>
-        <div class="card" style="padding:14px"><div style="font-size:11px;color:var(--text3)">Risk Scoring</div><div style="font-weight:500;margin-top:4px">${h.riskScoring.resultado?.toUpperCase()||'—'}</div></div>
-        <div class="card" style="padding:14px"><div style="font-size:11px;color:var(--text3)">Nivel DD</div><div style="font-weight:500;margin-top:4px">${dd.nivel?(dd.nivel==='alto'?'Completa':'Reducida'):'Automática (Bajo)'}</div></div>
-      </div>
-      ${ter?.fechaSiguiente?`<div class="info-box">📅 Próxima renovación: <strong>${fmtDate(ter.fechaSiguiente)}</strong></div>`:''}`;
-  }
-  return '';
+    ${renderQsDomain(preguntas, respuestas, `sc-${d.id}`)}
+  `;
 }
 
-function hwFooter() {
-  const h = HW.hom;
-  if (h.fase === 'scope_check')  return `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="hwSubmitScope()">Continuar →</button>`;
-  if (h.fase === 'risk_scoring') return `<button class="btn btn-secondary" onclick="closeModal()">Guardar y cerrar</button><button class="btn btn-primary" onclick="hwSubmitRisk()">Continuar →</button>`;
-  if (h.fase === 'due_diligence') {
-    const cuests = getDDCuestionarios(HW.tercero), idx = HW.hom.dueDiligence.cuestionarioActual||0;
-    const isLast = idx >= cuests.length-1;
-    return `<button class="btn btn-secondary" onclick="closeModal()">Guardar y cerrar</button><button class="btn btn-primary" onclick="hwSubmitDD()">${isLast?'Finalizar Due Diligence →':'Siguiente cuestionario →'}</button>`;
+function scSwitchTab(domId) {
+  scCollectCurrent();
+  HW.scActiveDom = domId;
+  const dominios = getDominiosActivos().filter(d => (d.cuestionario?.scopeCheck?.preguntas||[]).length > 0);
+  document.getElementById('sc-tabs').innerHTML = renderSCTabs(dominios);
+  document.getElementById('sc-body').innerHTML = renderSCBody(dominios);
+}
+
+function scCollectCurrent() {
+  const d = getDominiosActivos().find(x => x.id === HW.scActiveDom);
+  if (!d) return;
+  const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+  HW.hom.scopeCheck.respuestasPorDominio[d.id] = collectQsDomain(`sc-${d.id}`, preguntas);
+}
+
+async function hwCloseSC() {
+  scCollectCurrent();
+  await saveItem('homologaciones', HW.hom);
+  closeModal();
+  openHWPanel();
+}
+
+async function hwCompletarSC() {
+  scCollectCurrent();
+  const dominios = getDominiosActivos();
+  // Evaluate each domain
+  dominios.forEach(d => {
+    const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+    const respuestas = HW.hom.scopeCheck.respuestasPorDominio[d.id] || {};
+    const { score } = homCalcScoreGeneric(preguntas, respuestas);
+    const umbral = d.cuestionario?.scopeCheck?.umbralMaterial || 1;
+    HW.hom.dominios[d.id].scopeResultado = score >= umbral ? 'material' : 'no_aplica';
+  });
+  HW.hom.scopeCheck.estado = 'completado';
+  await saveItem('homologaciones', HW.hom);
+  notify('✅ Scope Check completado');
+  closeModal();
+  openHWPanel();
+}
+
+// ── RISK SCORING SESSION ──────────────────────────────────────
+function openRiskScoringSession() {
+  const dominios = getDominiosActivos().filter(d => HW.hom.dominios[d.id]?.scopeResultado === 'material' && (d.cuestionario?.riskScoring?.preguntas||[]).length > 0);
+  if (!dominios.length) { notify('No hay dominios materiales con preguntas de Risk Scoring', 'error'); return; }
+  HW.rsActiveDom = dominios[0].id;
+  openModal(`
+    <div class="modal hom-session-modal">
+      <div class="modal-header" style="flex-shrink:0">
+        <div><div class="modal-title">📊 Risk Scoring — ${HW.tercero.nombre}</div>
+          <div style="font-size:11px;color:var(--text3)">Evaluación interna · Determina el nivel de Due Diligence por dominio</div>
+        </div>
+        <span class="autosave-indicator" id="hw-autosave-rs">—</span>
+        <button class="btn btn-ghost btn-icon" style="margin-left:12px" onclick="hwCloseRS()">${SVG.x}</button>
+      </div>
+      <div class="hom-domain-tabs" id="rs-tabs">${renderRSTabs(dominios)}</div>
+      <div style="flex:1;overflow-y:auto;padding:20px 24px" id="rs-body">${renderRSBody(dominios)}</div>
+      <div class="modal-footer" style="flex-shrink:0">
+        <div class="autosave-indicator" id="rs-save-status">Guardado automáticamente cada 5 seg</div>
+        <button class="btn btn-secondary" onclick="hwCloseRS()">Guardar y cerrar</button>
+        <button class="btn btn-primary" onclick="hwCompletarRS()">${SVG.check} Completar Risk Scoring</button>
+      </div>
+    </div>
+  `);
+  hwStartAutosaveRS(dominios);
+}
+
+function renderRSTabs(dominios) {
+  return dominios.map(d => {
+    const rs = HW.hom.dominios[d.id]?.riskScoring;
+    const icon = rs?.estado==='completado' ? '✓ ' : rs?.estado==='borrador' ? '~ ' : '';
+    return `<div class="hom-domain-tab ${HW.rsActiveDom===d.id?'active':''}" onclick="rsSwitchTab('${d.id}')">
+      <span class="dom-dot" style="background:${d.color}"></span>${icon}${d.nombre}
+      ${rs?.estado==='completado' ? `<span class="tab-status" style="background:var(--green-soft);color:var(--green)">${rs.nivel==='sinDD'?'Sin DD':rs.nivel==='reducida'?'Reducida':'Ampliada'}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderRSBody(dominios) {
+  const d = dominios.find(x => x.id === HW.rsActiveDom);
+  if (!d) return '';
+  const preguntas = d.cuestionario?.riskScoring?.preguntas || [];
+  const rs = HW.hom.dominios[d.id]?.riskScoring;
+  const respuestas = rs?.respuestas || {};
+  const u = d.cuestionario?.riskScoring?.umbrales || {};
+  return `
+    <div class="info-box" style="margin-bottom:12px">
+      <strong style="color:${d.color}">${d.nombre}</strong> — Umbrales:
+      Sin DD ≤ ${u.sinDD?.max??1}pts · Reducida ${u.reducida?.min??2}–${u.reducida?.max??4}pts · Ampliada ≥ ${u.ampliada?.min??5}pts
+    </div>
+    ${rs?.estado==='completado' ? `<div class="success-box" style="margin-bottom:12px">✓ Completado — Nivel: <strong>${rs.nivel==='sinDD'?'Sin DD':rs.nivel==='reducida'?'DD Reducida':'DD Ampliada'}</strong> (${rs.score}pts${rs.hasFlag?' 🚩':''})</div>` : ''}
+    ${renderQsDomain(preguntas, respuestas, `rs-${d.id}`)}
+  `;
+}
+
+function rsSwitchTab(domId) {
+  rsCollectCurrent();
+  HW.rsActiveDom = domId;
+  const dominios = getDominiosActivos().filter(d => HW.hom.dominios[d.id]?.scopeResultado === 'material');
+  document.getElementById('rs-tabs').innerHTML = renderRSTabs(dominios);
+  document.getElementById('rs-body').innerHTML = renderRSBody(dominios);
+}
+
+function rsCollectCurrent() {
+  const d = getDominiosActivos().find(x => x.id === HW.rsActiveDom);
+  if (!d) return;
+  const preguntas = d.cuestionario?.riskScoring?.preguntas || [];
+  const resp = collectQsDomain(`rs-${d.id}`, preguntas);
+  const { score, hasFlag } = homCalcScoreGeneric(preguntas, resp);
+  const nivel = homCalcRSNivel(d, score, hasFlag);
+  HW.hom.dominios[d.id].riskScoring = { ...HW.hom.dominios[d.id].riskScoring, respuestas:resp, score, hasFlag, nivel, estado:'borrador' };
+}
+
+function hwStartAutosaveRS(dominios) {
+  if (hwAutosaveTimer) clearInterval(hwAutosaveTimer);
+  hwAutosaveTimer = setInterval(async () => {
+    rsCollectCurrent();
+    await saveItem('homologaciones', HW.hom);
+    const el = document.getElementById('rs-save-status');
+    if (el) el.textContent = '✓ Guardado ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  }, 5000);
+}
+
+async function hwCloseRS() {
+  hwStopAutosave();
+  rsCollectCurrent();
+  await saveItem('homologaciones', HW.hom);
+  closeModal();
+  openHWPanel();
+}
+
+async function hwCompletarRS() {
+  hwStopAutosave();
+  rsCollectCurrent();
+  const dominios = getDominiosActivos().filter(d => HW.hom.dominios[d.id]?.scopeResultado === 'material');
+  dominios.forEach(d => {
+    const rs = HW.hom.dominios[d.id].riskScoring;
+    rs.estado = 'completado';
+    // Assign aprobador from domain config
+    const apr = d.cuestionario?.riskScoring?.aprobadores?.[rs.nivel] || '';
+    HW.hom.dominios[d.id].aprobacion.aprobadorRequerido = apr;
+  });
+  await saveItem('homologaciones', HW.hom);
+  notify('✅ Risk Scoring completado');
+  closeModal();
+  openHWPanel();
+}
+
+// ── DUE DILIGENCE SESSION ─────────────────────────────────────
+function openDDSession() {
+  const dominios = getDominiosActivos().filter(d => {
+    const dom = HW.hom.dominios[d.id];
+    return dom?.scopeResultado === 'material' && dom?.riskScoring.estado === 'completado' && dom?.riskScoring.nivel !== 'sinDD';
+  });
+  if (!dominios.length) { notify('No hay dominios que requieran Due Diligence', 'error'); return; }
+  HW.ddActiveDom = dominios[0].id;
+  openModal(`
+    <div class="modal hom-session-modal">
+      <div class="modal-header" style="flex-shrink:0">
+        <div><div class="modal-title">📋 Due Diligence — ${HW.tercero.nombre}</div>
+          <div style="font-size:11px;color:var(--text3)">Cuestionario al proveedor · Borrador guardado automáticamente</div>
+        </div>
+        <span class="autosave-indicator" id="dd-save-status">—</span>
+        <button class="btn btn-ghost btn-icon" style="margin-left:12px" onclick="hwCloseDD()">${SVG.x}</button>
+      </div>
+      <div class="hom-domain-tabs" id="dd-tabs">${renderDDTabs(dominios)}</div>
+      <div style="flex:1;overflow-y:auto;padding:20px 24px" id="dd-body">${renderDDBody(dominios)}</div>
+      <div class="modal-footer" style="flex-shrink:0">
+        <button class="btn btn-secondary" onclick="hwCloseDD()">Guardar y cerrar</button>
+        <button class="btn btn-primary" onclick="hwCompletarDomDD()">${SVG.check} Completar dominio actual</button>
+      </div>
+    </div>
+  `);
+  hwStartAutosaveDD(dominios);
+}
+
+function renderDDTabs(dominios) {
+  return dominios.map(d => {
+    const dd = HW.hom.dominios[d.id]?.dd;
+    const rs = HW.hom.dominios[d.id]?.riskScoring;
+    const icon = dd?.estado==='completado' ? '✓ ' : dd?.estado==='borrador' ? '~ ' : '';
+    return `<div class="hom-domain-tab ${HW.ddActiveDom===d.id?'active':''}" onclick="ddSwitchTab('${d.id}')">
+      <span class="dom-dot" style="background:${d.color}"></span>${icon}${d.nombre}
+      <span class="tab-status" style="background:${rs?.nivel==='ampliada'?'var(--red-soft)':'var(--amber-soft)'};color:${rs?.nivel==='ampliada'?'var(--red)':'var(--amber)'}">
+        ${rs?.nivel==='ampliada'?'Ampliada':'Reducida'}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function renderDDBody(dominios) {
+  const d = dominios.find(x => x.id === HW.ddActiveDom);
+  if (!d) return '';
+  const rs = HW.hom.dominios[d.id]?.riskScoring;
+  const dd = HW.hom.dominios[d.id]?.dd;
+  const esAmpliada = rs?.nivel === 'ampliada';
+  const todasPreguntas = d.cuestionario?.dd?.preguntas || [];
+  const reducidas = todasPreguntas.filter(p => !p.soloAmpliada);
+  const soloAmpliadas = todasPreguntas.filter(p => p.soloAmpliada);
+  const preguntas = esAmpliada ? todasPreguntas : reducidas;
+  const respuestas = dd?.respuestas || {};
+
+  // Check linked questions answered in other domains
+  const linkedAnswers = {};
+  dominios.filter(dx => dx.id !== d.id).forEach(dx => {
+    const otherResp = HW.hom.dominios[dx.id]?.dd?.respuestas || {};
+    const otherPregs = dx.cuestionario?.dd?.preguntas || [];
+    otherPregs.forEach(op => {
+      if (op.origenId && otherResp[op.id] !== undefined) {
+        // Find matching question in current domain by origenId
+        const match = preguntas.find(p => p.origenId === op.origenId);
+        if (match) linkedAnswers[match.id] = { value: otherResp[op.id], fromDominio: dx.nombre };
+      }
+    });
+  });
+
+  if (dd?.estado === 'completado') {
+    return `<div class="success-box" style="margin-bottom:16px">✓ <strong>${d.nombre}</strong> Due Diligence completada — ${dd.score}pts${dd.hasFlag?' 🚩':''}</div>
+      ${renderQsDomainReadonly(preguntas, respuestas, `dd-${d.id}`)}`;
   }
-  if (h.fase === 'aprobacion')   return `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button><button class="btn btn-success" onclick="hwAprobar()">${SVG.check} Aprobar y Homologar</button>`;
-  return `<button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`;
+
+  return `
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <div class="${esAmpliada?'warn-box':'info-box'}" style="flex:1">
+        <strong style="color:${d.color}">${d.nombre}</strong> — DD <strong>${esAmpliada?'Ampliada':'Reducida'}</strong>
+        · ${preguntas.length} preguntas${esAmpliada&&soloAmpliadas.length?` (${reducidas.length} base + ${soloAmpliadas.length} adicionales)`:' (versión reducida)'}
+      </div>
+    </div>
+    ${renderQsDDWithLinked(reducidas, soloAmpliadas, esAmpliada, respuestas, linkedAnswers, d.id)}
+  `;
+}
+
+function renderQsDDWithLinked(reducidas, soloAmpliadas, esAmpliada, respuestas, linkedAnswers, domId) {
+  let html = '';
+  const prefix = `dd-${domId}`;
+
+  if (reducidas.length) {
+    html += reducidas.map((p, i) => renderDDQuestion(p, i, prefix, respuestas, linkedAnswers)).join('');
+  }
+
+  if (esAmpliada && soloAmpliadas.length) {
+    html += `<div class="dd-section-divider">
+      <div class="dd-section-divider-line"></div>
+      <div class="dd-section-divider-label">🔴 Solo DD Ampliada</div>
+      <div class="dd-section-divider-line"></div>
+    </div>`;
+    html += soloAmpliadas.map((p, i) => renderDDQuestion(p, reducidas.length + i, prefix, respuestas, linkedAnswers)).join('');
+  }
+
+  return html;
+}
+
+function renderDDQuestion(p, idx, prefix, respuestas, linkedAnswers) {
+  const linked = linkedAnswers[p.id];
+  const savedResp = respuestas[p.id];
+
+  if (linked) {
+    // Greyed out — already answered in another domain
+    const op = (p.opciones||[]).find(o => o.texto === linked.value);
+    return `<div class="questionnaire-question" style="opacity:.55;pointer-events:none;position:relative">
+      <div class="question-text">${idx+1}. ${p.texto}
+        <span class="badge" style="background:var(--surface3);color:var(--text3);margin-left:8px;font-size:10px">Respondida en ${linked.fromDominio}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${(p.opciones||[]).map(o => `
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${o.texto===linked.value?'var(--accent)':'var(--border2)'};background:${o.texto===linked.value?'var(--accent-glow)':'transparent'}">
+            <input type="radio" disabled ${o.texto===linked.value?'checked':''} style="accent-color:var(--accent)">
+            <span style="flex:1">${o.texto}</span>
+            ${o.valor?`<span style="font-size:11px;color:var(--amber)">${o.valor}pts</span>`:''}
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="questionnaire-question" id="qq-${prefix}-${p.id}">
+    <div class="question-text">${idx+1}. ${p.texto}${p.obligatoria?'<span style="color:var(--red);margin-left:4px">*</span>':''}</div>
+    ${p.tipo === 'abierta'
+      ? `<textarea class="form-textarea" id="${prefix}-${p.id}" rows="2">${savedResp||''}</textarea>`
+      : p.tipo === 'select_multiple'
+        ? `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
+            const isSel = Array.isArray(savedResp) ? savedResp.includes(op.texto) : false;
+            return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:pointer;transition:all .15s">
+              <input type="checkbox" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="accent-color:var(--accent)" onchange="ddMultiSel(this,'${prefix}','${p.id}')">
+              <span style="flex:1">${op.texto}</span>
+              ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+              ${op.flag?'<span style="color:var(--red)">🚩</span>':''}
+            </label>`;
+          }).join('')}</div>`
+        : `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
+            const isSel = savedResp === op.texto;
+            return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:pointer;transition:all .15s" onclick="qSel(this,'${prefix}','${p.id}')">
+              <input type="radio" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="pointer-events:none;accent-color:var(--accent)">
+              <span style="flex:1">${op.texto}</span>
+              ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+              ${op.flag?'<span style="color:var(--red)">🚩</span>':''}
+            </label>`;
+          }).join('')}</div>`}
+  </div>`;
+}
+
+function ddMultiSel(el, prefix, qId) {
+  const dom = getDominiosActivos().find(d => `dd-${d.id}` === prefix);
+  if (!dom) return;
+  const dd = HW.hom.dominios[dom.id].dd;
+  if (!dd.respuestas) dd.respuestas = {};
+  const checkboxes = document.querySelectorAll(`input[name="${prefix}-${qId}"]`);
+  dd.respuestas[qId] = [...checkboxes].filter(c=>c.checked).map(c=>c.value);
+}
+
+function renderQsDomainReadonly(preguntas, respuestas, prefix) {
+  return preguntas.map((p, i) => {
+    const resp = respuestas[p.id];
+    return `<div class="questionnaire-question">
+      <div class="question-text">${i+1}. ${p.texto}</div>
+      <div style="padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;color:var(--text2)">
+        ${Array.isArray(resp) ? resp.join(', ') : resp || '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ddSwitchTab(domId) {
+  ddCollectCurrent();
+  HW.ddActiveDom = domId;
+  const dominios = getDominiosActivos().filter(d => {
+    const dom = HW.hom.dominios[d.id];
+    return dom?.scopeResultado === 'material' && dom?.riskScoring.estado === 'completado' && dom?.riskScoring.nivel !== 'sinDD';
+  });
+  document.getElementById('dd-tabs').innerHTML = renderDDTabs(dominios);
+  document.getElementById('dd-body').innerHTML = renderDDBody(dominios);
+}
+
+function ddCollectCurrent() {
+  const d = getDominiosActivos().find(x => x.id === HW.ddActiveDom);
+  if (!d) return;
+  const rs = HW.hom.dominios[d.id]?.riskScoring;
+  const esAmpliada = rs?.nivel === 'ampliada';
+  const todasPreguntas = d.cuestionario?.dd?.preguntas || [];
+  const preguntas = esAmpliada ? todasPreguntas : todasPreguntas.filter(p => !p.soloAmpliada);
+  const prefix = `dd-${d.id}`;
+  const resp = collectQsDomain(prefix, preguntas);
+  if (!HW.hom.dominios[d.id].dd) HW.hom.dominios[d.id].dd = { estado:'pendiente', respuestas:{}, score:0, resultado:'', hasFlag:false };
+  HW.hom.dominios[d.id].dd.respuestas = resp;
+  HW.hom.dominios[d.id].dd.estado = 'borrador';
+}
+
+function hwStartAutosaveDD(dominios) {
+  if (hwAutosaveTimer) clearInterval(hwAutosaveTimer);
+  hwAutosaveTimer = setInterval(async () => {
+    ddCollectCurrent();
+    await saveItem('homologaciones', HW.hom);
+    const el = document.getElementById('dd-save-status');
+    if (el) el.textContent = '✓ Guardado ' + new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  }, 5000);
+}
+
+async function hwCloseDD() {
+  hwStopAutosave();
+  ddCollectCurrent();
+  await saveItem('homologaciones', HW.hom);
+  closeModal();
+  openHWPanel();
+}
+
+async function hwCompletarDomDD() {
+  ddCollectCurrent();
+  const d = getDominiosActivos().find(x => x.id === HW.ddActiveDom);
+  if (!d) return;
+  const rs = HW.hom.dominios[d.id]?.riskScoring;
+  const esAmpliada = rs?.nivel === 'ampliada';
+  const todasPreguntas = d.cuestionario?.dd?.preguntas || [];
+  const preguntas = esAmpliada ? todasPreguntas : todasPreguntas.filter(p => !p.soloAmpliada);
+  const resp = HW.hom.dominios[d.id].dd.respuestas;
+  const missing = preguntas.filter(p => p.obligatoria && !isAnsweredV2(p, resp[p.id]));
+  if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
+  const { score, hasFlag } = homCalcScoreGeneric(preguntas, resp);
+  HW.hom.dominios[d.id].dd = { ...HW.hom.dominios[d.id].dd, estado:'completado', score, hasFlag };
+  await saveItem('homologaciones', HW.hom);
+  notify(`✅ DD de ${d.nombre} completada`);
+  const dominios = getDominiosActivos().filter(dx => {
+    const dom = HW.hom.dominios[dx.id];
+    return dom?.scopeResultado === 'material' && dom?.riskScoring.estado === 'completado' && dom?.riskScoring.nivel !== 'sinDD';
+  });
+  document.getElementById('dd-tabs').innerHTML = renderDDTabs(dominios);
+  document.getElementById('dd-body').innerHTML = renderDDBody(dominios);
+}
+
+function isAnsweredV2(p, resp) {
+  if (resp === undefined || resp === null || resp === '') return false;
+  if (Array.isArray(resp)) return resp.length > 0;
+  return true;
+}
+
+// ── APROBACIÓN ────────────────────────────────────────────────
+function openAprobacionPanel() {
+  const dominios = getDominiosActivos().filter(d => {
+    const dom = HW.hom.dominios[d.id];
+    const aprReq = d.cuestionario?.riskScoring?.aprobadores?.[dom?.riskScoring?.nivel];
+    return dom?.dd?.estado === 'completado' && aprReq;
+  });
+
+  openModal(`
+    <div class="modal" style="max-width:700px">
+      <div class="modal-header">
+        <div class="modal-title">✅ Aprobaciones — ${HW.tercero.nombre}</div>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal();openHWPanel()">${SVG.x}</button>
+      </div>
+      <div class="modal-body">
+        ${dominios.map(d => {
+          const dom = HW.hom.dominios[d.id];
+          const aprobador = d.cuestionario?.riskScoring?.aprobadores?.[dom.riskScoring.nivel];
+          const apr = dom.aprobacion;
+          return `<div style="padding:16px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;border-left:4px solid ${d.color}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:600;color:var(--text)">${d.nombre}</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:2px">DD ${dom.riskScoring.nivel==='ampliada'?'Ampliada':'Reducida'} · ${dom.dd.score}pts${dom.dd.hasFlag?' 🚩':''}</div>
+              </div>
+              ${apr.estado==='aprobado'
+                ? `<span class="dom-fase-pill dom-fase-done">✓ Aprobado por ${apr.aprobadoPor}</span>`
+                : `<span class="dom-fase-pill dom-fase-required">⏳ Pendiente · ${aprobador}</span>`}
+            </div>
+            ${apr.estado !== 'aprobado' ? `
+              <div class="form-group" style="margin-bottom:8px">
+                <label class="form-label">Comentario (opcional)</label>
+                <textarea class="form-textarea" id="apr-com-${d.id}" rows="2" placeholder="Observaciones...">${apr.comentario||''}</textarea>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-success btn-sm" onclick="hwAprobarDominio('${d.id}')">${SVG.check} Aprobar ${d.nombre}</button>
+                <button class="btn btn-danger btn-sm" onclick="hwRechazarDominio('${d.id}')">✗ Rechazar</button>
+              </div>` : `<div style="font-size:12px;color:var(--text3)">Aprobado el ${fmtDate(apr.fecha)}${apr.comentario?' · '+apr.comentario:''}</div>`}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal();openHWPanel()">Cerrar</button>
+      </div>
+    </div>
+  `);
+}
+
+async function hwAprobarDominio(domId) {
+  const d = state.data.ambitos.find(a => a.id === domId);
+  const comentario = document.getElementById(`apr-com-${domId}`)?.value || '';
+  HW.hom.dominios[domId].aprobacion = { estado:'aprobado', aprobadoPor:'Admin Usuario', fecha:new Date().toISOString().split('T')[0], comentario };
+  await saveItem('homologaciones', HW.hom);
+  notify(`✅ ${d?.nombre} aprobado`);
+  // Check if all approved
+  const allDone = getDominiosActivos().every(dom => {
+    const dd = HW.hom.dominios[dom.id];
+    const aprReq = dom.cuestionario?.riskScoring?.aprobadores?.[dd?.riskScoring?.nivel];
+    return !aprReq || dd?.aprobacion?.estado === 'aprobado';
+  });
+  if (allDone) { closeModal(); openHWPanel(); }
+  else openAprobacionPanel();
+}
+
+async function hwRechazarDominio(domId) {
+  const d = state.data.ambitos.find(a => a.id === domId);
+  const comentario = document.getElementById(`apr-com-${domId}`)?.value || '';
+  HW.hom.dominios[domId].aprobacion = { estado:'rechazado', aprobadoPor:'Admin Usuario', fecha:new Date().toISOString().split('T')[0], comentario };
+  HW.hom.dominios[domId].dd.estado = 'pendiente'; // Reset DD for this domain
+  await saveItem('homologaciones', HW.hom);
+  notify(`⚠️ ${d?.nombre} rechazado — DD requiere revisión`);
+  closeModal();
+  openHWPanel();
+}
+
+// ── FINALIZAR ─────────────────────────────────────────────────
+async function hwFinalizar() {
+  // Compute global risk = worst risk across all material domains
+  const materiales = getDominiosActivos().filter(d => HW.hom.dominios[d.id]?.scopeResultado === 'material');
+  const scores = materiales.map(d => {
+    const rs = HW.hom.dominios[d.id].riskScoring;
+    if (rs.nivel === 'ampliada' || rs.hasFlag) return 3;
+    if (rs.nivel === 'reducida') return 2;
+    return 1;
+  });
+  const maxScore = Math.max(...scores, 0);
+  const riesgoFinal = maxScore >= 3 ? 'alto' : maxScore >= 2 ? 'medio' : 'bajo';
+  const hoy = new Date().toISOString().split('T')[0];
+  const plazos = state.data.plazos || { alto:12, medio:24, bajo:36 };
+
+  HW.hom.estadoGlobal = 'completada';
+  HW.hom.riesgoFinal = riesgoFinal;
+  HW.hom.fechaCierre = hoy;
+
+  // Update tercero
+  const tercero = state.data.terceros.find(t => t.id === HW.hom.terceroId);
+  if (tercero) {
+    tercero.riesgo = riesgoFinal;
+    tercero.fechaUltima = hoy;
+    if (!tercero.fechaPrimera) tercero.fechaPrimera = hoy;
+    tercero.fechaSiguiente = addMonths(hoy, plazos[riesgoFinal] || 24);
+    await saveItem('terceros', tercero);
+  }
+  await saveItem('homologaciones', HW.hom);
+  notify(`✅ Tercero homologado — Riesgo ${riesgoFinal.toUpperCase()}`);
+  hwStopAutosave();
+  closeModal();
+  if (state.currentPage === 'homologaciones') renderHomologaciones();
+  if (state.currentPage === 'terceros') renderTerceros();
+}
+
+// ── Domain question renderers (reusable) ─────────────────────
+function renderQsDomain(preguntas, respuestas, prefix) {
+  return preguntas.map((p, i) => {
+    const saved = respuestas[p.id];
+    return `<div class="questionnaire-question" id="qq-${prefix}-${p.id}">
+      <div class="question-text">${i+1}. ${p.texto}${p.obligatoria?'<span style="color:var(--red);margin-left:4px">*</span>':''}</div>
+      ${p.tipo === 'abierta'
+        ? `<textarea class="form-textarea" id="${prefix}-${p.id}" rows="2">${saved||''}</textarea>`
+        : p.tipo === 'select_multiple'
+          ? `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
+              const isSel = Array.isArray(saved) ? saved.includes(op.texto) : false;
+              return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?'var(--accent)':'var(--border2)'};background:${isSel?'var(--accent-glow)':'transparent'};cursor:pointer;transition:all .15s">
+                <input type="checkbox" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="accent-color:var(--accent)">
+                <span style="flex:1">${op.texto}</span>
+                ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+                ${op.flag?'<span style="color:var(--red)">🚩</span>':''}
+              </label>`;
+            }).join('')}</div>`
+          : `<div style="display:flex;flex-direction:column;gap:8px">${(p.opciones||[]).map(op => {
+              const isSel = saved === op.texto;
+              return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid ${isSel?(op.flag?'var(--red)':'var(--accent)'):'var(--border2)'};background:${isSel?(op.flag?'rgba(239,68,68,.08)':'var(--accent-glow)'):'transparent'};cursor:pointer;transition:all .15s" onclick="qSel(this,'${prefix}','${p.id}')">
+                <input type="radio" name="${prefix}-${p.id}" value="${op.texto.replace(/"/g,'&quot;')}" ${isSel?'checked':''} style="pointer-events:none;accent-color:var(--accent)">
+                <span style="flex:1">${op.texto}</span>
+                ${op.valor?`<span style="font-size:11px;color:var(--amber)">${op.valor}pts</span>`:''}
+                ${op.flag?'<span style="color:var(--red)">🚩</span>':''}
+              </label>`;
+            }).join('')}</div>`}
+    </div>`;
+  }).join('');
+}
+
+function collectQsDomain(prefix, preguntas) {
+  const resp = {};
+  preguntas.forEach(p => {
+    if (p.tipo === 'abierta') {
+      const el = document.getElementById(`${prefix}-${p.id}`);
+      if (el) resp[p.id] = el.value;
+    } else if (p.tipo === 'select_multiple') {
+      const checks = document.querySelectorAll(`input[name="${prefix}-${p.id}"]:checked`);
+      if (checks.length) resp[p.id] = [...checks].map(c => c.value);
+    } else {
+      const checked = document.querySelector(`input[name="${prefix}-${p.id}"]:checked`);
+      if (checked) resp[p.id] = checked.value;
+    }
+  });
+  return resp;
 }
 
 function renderQs(cq, respuestas, prefix) {
@@ -3709,117 +4456,6 @@ function isAnswered(p, resp) {
   return true;
 }
 
-async function hwSubmitScope() {
-  const cq = state.data.cuestionarios.find(c => c.tipo === 'scope_check');
-  if (!cq) { notify('Sin cuestionario de Scope Check', 'error'); return; }
-  const resp = collectQs('hw-sc', cq.preguntas||[]);
-  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
-  if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
-  const unconfirmed = (cq.preguntas||[]).filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
-  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
-  const { score, hasFlag } = calcScore(cq.preguntas||[], resp);
-  const material = score >= (cq.umbralMaterial||2);
-  HW.hom.scopeCheck = { respuestas:resp, score, resultado: material?'material':'no_material' };
-  if (!material) {
-    HW.hom.fase = 'fuera_scope'; HW.hom.fechaCierre = new Date().toISOString().split('T')[0];
-    await saveItem('homologaciones', HW.hom);
-    notify('Tercero marcado como Fuera de Scope — no requiere homologación');
-    closeModal(); renderTerceros(); return;
-  }
-  HW.hom.fase = 'risk_scoring';
-  await saveItem('homologaciones', HW.hom);
-  document.getElementById('hw-body').innerHTML = hwStep();
-  document.getElementById('hw-footer').innerHTML = hwFooter();
-  hwRefreshHeader();
-}
-
-async function hwSubmitRisk() {
-  const cq = state.data.cuestionarios.find(c => c.tipo === 'risk_scoring');
-  if (!cq) { notify('Sin cuestionario de Risk Scoring', 'error'); return; }
-  const resp = collectQs('hw-rs', cq.preguntas||[]);
-  const missing = (cq.preguntas||[]).filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
-  if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
-  const unconfirmed = (cq.preguntas||[]).filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
-  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
-  const { score, hasFlag } = calcScore(cq.preguntas||[], resp);
-  const nivel = getRiskLevel(cq, score, hasFlag);
-  HW.hom.riskScoring = { respuestas:resp, score, resultado:nivel, hasFlag };
-
-  if (nivel === 'bajo' && !hasFlag) {
-    HW.hom.riesgoFinal = 'bajo'; HW.hom.fase = 'completada'; HW.hom.fechaCierre = new Date().toISOString().split('T')[0];
-    const plazos = state.data.plazos||{bajo:36};
-    const tercero = state.data.terceros.find(t => t.id === HW.hom.terceroId);
-    if (tercero) { tercero.riesgo = 'bajo'; tercero.fechaUltima = HW.hom.fechaCierre; if (!tercero.fechaPrimera) tercero.fechaPrimera = HW.hom.fechaCierre; tercero.fechaSiguiente = addMonths(HW.hom.fechaCierre, plazos.bajo||36); await saveItem('terceros', tercero); HW.tercero = tercero; }
-    await saveItem('homologaciones', HW.hom);
-    notify('✅ Risk Scoring Bajo — Homologado automáticamente');
-    document.getElementById('hw-body').innerHTML = hwStep();
-    document.getElementById('hw-footer').innerHTML = hwFooter();
-    hwRefreshHeader(); return;
-  }
-
-  const ddNivel = (nivel === 'alto' || hasFlag) ? 'alto' : 'medio';
-  const cuests = getDDCuestionarios(HW.tercero);
-  HW.hom.dueDiligence = { nivel:ddNivel, cuestionariosOrder:cuests.map(c=>c.id), respuestasPorCuestionario:{}, resultadoPorCuestionario:{}, resultadoFinal:'', cuestionarioActual:0 };
-  HW.hom.fase = 'due_diligence';
-  await saveItem('homologaciones', HW.hom);
-  document.getElementById('hw-body').innerHTML = hwStep();
-  document.getElementById('hw-footer').innerHTML = hwFooter();
-  hwRefreshHeader();
-}
-
-async function hwSubmitDD() {
-  const dd = HW.hom.dueDiligence, cuests = getDDCuestionarios(HW.tercero);
-  const idx = dd.cuestionarioActual||0, cq = cuests[idx];
-  const preguntas = filterByDDLevel(cq.preguntas||[], dd.nivel);
-  const resp = collectQs('hw-dd', preguntas);
-  const missing = preguntas.filter(p => p.obligatoria && !isAnswered(p, resp[p.id]));
-  if (missing.length) { notify(`Faltan ${missing.length} respuesta(s) obligatoria(s)`, 'error'); return; }
-  const unconfirmed = preguntas.filter(p => p.tipo==='api_lookup' && p.apiConfig?.requireConfirmation && resp[p.id] && !resp[p.id]._confirmed);
-  if (unconfirmed.length) { notify(`${unconfirmed.length} consulta(s) API pendiente(s) de confirmar`, 'error'); return; }
-  const { score, hasFlag } = calcScore(preguntas, resp);
-  const nivel = getRiskLevel(cq, score, hasFlag);
-  dd.respuestasPorCuestionario[cq.id] = resp;
-  dd.resultadoPorCuestionario[cq.id] = { score, hasFlag, resultado:nivel };
-
-  if (idx < cuests.length-1) {
-    dd.cuestionarioActual = idx+1;
-    await saveItem('homologaciones', HW.hom);
-    document.getElementById('hw-body').innerHTML = hwStep();
-    document.getElementById('hw-footer').innerHTML = hwFooter();
-    hwRefreshHeader(); return;
-  }
-
-  const results = Object.values(dd.resultadoPorCuestionario);
-  dd.resultadoFinal = results.some(r=>r.hasFlag||r.resultado==='alto') ? 'alto' : results.some(r=>r.resultado==='medio') ? 'medio' : 'bajo';
-
-  const cqG = state.data.cuestionarios.find(c => c.tipo === 'general');
-  const aprobador = cqG?.aprobadores?.[dd.resultadoFinal]||'';
-  if (aprobador) { HW.hom.fase = 'aprobacion'; } else { await hwCompletar(); return; }
-  await saveItem('homologaciones', HW.hom);
-  document.getElementById('hw-body').innerHTML = hwStep();
-  document.getElementById('hw-footer').innerHTML = hwFooter();
-  hwRefreshHeader();
-}
-
-async function hwAprobar() {
-  HW.hom.aprobacion = { estado:'aprobado', aprobadoPor:'Admin Usuario', fecha:new Date().toISOString().split('T')[0], comentario:document.getElementById('apr-com')?.value||'' };
-  await hwCompletar();
-}
-
-async function hwCompletar() {
-  const dd = HW.hom.dueDiligence;
-  HW.hom.riesgoFinal = dd.resultadoFinal||'bajo'; HW.hom.fase = 'completada'; HW.hom.fechaCierre = new Date().toISOString().split('T')[0];
-  const plazos = state.data.plazos||{alto:12,medio:24,bajo:36};
-  const meses = plazos[HW.hom.riesgoFinal]||24;
-  const tercero = state.data.terceros.find(t => t.id === HW.hom.terceroId);
-  if (tercero) { tercero.riesgo = HW.hom.riesgoFinal; tercero.fechaUltima = HW.hom.fechaCierre; if (!tercero.fechaPrimera) tercero.fechaPrimera = HW.hom.fechaCierre; tercero.fechaSiguiente = addMonths(HW.hom.fechaCierre, meses); await saveItem('terceros', tercero); HW.tercero = tercero; }
-  await saveItem('homologaciones', HW.hom);
-  notify(`✅ Homologación completada — Riesgo ${HW.hom.riesgoFinal.toUpperCase()}`);
-  document.getElementById('hw-body').innerHTML = hwStep();
-  document.getElementById('hw-footer').innerHTML = hwFooter();
-  hwRefreshHeader();
-}
-
 // ══════════════════════════════════════════════════════════════
 //  HOMOLOGACIONES — list page
 // ══════════════════════════════════════════════════════════════
@@ -3828,32 +4464,52 @@ function renderHomologaciones() {
   const content = document.getElementById('content');
   content.innerHTML = `
     <div class="section-header">
-      <div><div class="section-title">Homologaciones</div><div class="section-sub">${homs.length} registros</div></div>
+      <div><div class="section-title">Homologaciones</div><div class="section-sub">${homs.length} procesos</div></div>
     </div>
-    ${!homs.length ? `<div style="text-align:center;padding:80px 20px;color:var(--text3)"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;display:block;opacity:.4"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>Sin homologaciones. Inicia una desde el Maestro de Terceros.</p></div>` : `
+    ${!homs.length ? `<div class="empty-state"><p>Sin homologaciones. Inicia una desde el Maestro de Terceros.</p></div>` : `
     <div class="card" style="padding:0">
       <div class="table-wrap"><table>
-        <thead><tr><th>Tercero</th><th>Inicio</th><th>Fase</th><th>Scope</th><th>Risk Scoring</th><th>DD Nivel</th><th>Resultado</th><th>Cierre</th><th>Acciones</th></tr></thead>
-        <tbody>${homs.sort((a,b)=>new Date(b.fechaInicio)-new Date(a.fechaInicio)).map(h => `<tr>
-          <td style="color:var(--text);font-weight:500">${h.terceroNombre}</td>
-          <td>${fmtDate(h.fechaInicio)}</td>
-          <td>${homBadge(h.fase)}</td>
-          <td>${h.scopeCheck?.resultado ? `<span class="badge ${h.scopeCheck.resultado==='material'?'badge-amber':'badge-gray'}">${h.scopeCheck.resultado}</span>` : '—'}</td>
-          <td>${h.riskScoring?.resultado ? riskBadge(h.riskScoring.resultado) : '—'}</td>
-          <td>${h.dueDiligence?.nivel ? `<span class="badge ${h.dueDiligence.nivel==='alto'?'badge-red':'badge-amber'}">${h.dueDiligence.nivel==='alto'?'Completa':'Reducida'}</span>` : '—'}</td>
-          <td>${h.riesgoFinal ? riskBadge(h.riesgoFinal) : '—'}</td>
-          <td>${fmtDate(h.fechaCierre)}</td>
-          <td><div style="display:flex;gap:4px">
-            ${!['completada','fuera_scope'].includes(h.fase) ? `<button class="btn btn-success btn-sm" onclick="resumeHom('${h.id}')">${SVG.play} Continuar</button>` : ''}
-            <button class="btn btn-danger btn-icon btn-sm" onclick="deleteHom('${h.id}')">${SVG.trash}</button>
-          </div></td>
-        </tr>`).join('')}</tbody>
+        <thead><tr>
+          <th>Tercero</th><th>Inicio</th><th>Estado global</th><th>Dominios</th><th>Riesgo final</th><th>Cierre</th><th></th>
+        </tr></thead>
+        <tbody>${homs.sort((a,b)=>new Date(b.fechaInicio)-new Date(a.fechaInicio)).map(h => {
+          const totalDoms = Object.keys(h.dominios||{}).length;
+          const materiales = Object.values(h.dominios||{}).filter(d=>d.scopeResultado==='material').length;
+          const completados = Object.values(h.dominios||{}).filter(d=>d.dd?.estado==='completado'||d.riskScoring?.nivel==='sinDD').length;
+          const statusLabel = h.estadoGlobal === 'completada'
+            ? '<span class="hom-status hom-completada">✅ Homologado</span>'
+            : '<span class="hom-status hom-scoring">🔄 En curso</span>';
+          return `<tr>
+            <td style="font-weight:500">${h.terceroNombre}</td>
+            <td>${fmtDate(h.fechaInicio)}</td>
+            <td>${statusLabel}</td>
+            <td><span style="font-size:12px;color:var(--text2)">${materiales}/${totalDoms} materiales</span></td>
+            <td>${h.riesgoFinal ? riskBadge(h.riesgoFinal) : '—'}</td>
+            <td>${fmtDate(h.fechaCierre)}</td>
+            <td><div style="display:flex;gap:4px">
+              <button class="btn btn-primary btn-sm" onclick="resumeHom('${h.id}')">Abrir</button>
+              <button class="btn btn-danger btn-icon btn-sm" onclick="deleteHom('${h.id}')">${SVG.trash}</button>
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody>
       </table></div>
     </div>`}`;
 }
 
-async function deleteHom(id) { if (!confirm('¿Eliminar esta homologación?')) return; await deleteItem('homologaciones', id); notify('Eliminada'); renderHomologaciones(); }
-function resumeHom(id) { const h = state.data.homologaciones.find(x=>x.id===id); const t = state.data.terceros.find(x=>x.id===h?.terceroId); if (!h||!t) return; HW = {hom:h, tercero:t}; renderHW(); }
+async function deleteHom(id) {
+  if (!confirm('¿Eliminar esta homologación?')) return;
+  await deleteItem('homologaciones', id);
+  notify('Eliminada');
+  renderHomologaciones();
+}
+
+function resumeHom(id) {
+  const h = state.data.homologaciones.find(x=>x.id===id);
+  const t = state.data.terceros.find(x=>x.id===h?.terceroId);
+  if (!h||!t) return;
+  HW = { hom:h, tercero:t };
+  openHWPanel();
+}
 
 // ══════════════════════════════════════════════════════════════
 //  PLAZOS — config page
