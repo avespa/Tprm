@@ -385,6 +385,29 @@
 
   .autosave-indicator { font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px; }
 
+  /* USER DROPDOWN */
+  .user-dropdown-item { padding:10px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text2);transition:background .1s; }
+  .user-dropdown-item:hover { background:var(--surface2);color:var(--text); }
+  .user-dropdown-item.active { background:var(--accent-glow);color:var(--accent);font-weight:600; }
+  .user-dropdown-item .ud-avatar { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
+
+  /* DASHBOARD V2 */
+  .dash-kpi-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px; }
+  .dash-kpi { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s; }
+  .dash-kpi:hover { border-color:var(--border2); }
+  .dash-kpi-value { font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-bottom:4px; }
+  .dash-kpi-label { font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.4px; }
+  .dash-kpi-sub { font-size:11px;color:var(--text3);margin-top:6px; }
+
+  .dash-section-title { font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px; }
+  .dash-two-col { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px; }
+  @media(max-width:900px) { .dash-two-col { grid-template-columns:1fr; } }
+
+  .dash-domain-bar { display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border); }
+  .dash-domain-bar:last-child { border-bottom:none; }
+  .dash-domain-progress { flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden; }
+  .dash-domain-progress-fill { height:100%;border-radius:3px;transition:width .3s; }
+
   .linked-q-overlay { opacity:.55;pointer-events:none;position:relative; }
   .linked-q-badge { position:absolute;top:50%;right:10px;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:4px;font-size:10px;padding:2px 7px;color:var(--text3);pointer-events:none; }
 
@@ -459,10 +482,12 @@
     <div id="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-right">
-        <div class="user-badge">
-          <div class="user-avatar">AU</div>
-          <span>Admin Usuario</span>
+        <div class="user-badge" onclick="toggleUserDropdown()" style="position:relative;cursor:pointer" id="user-badge-btn">
+          <div class="user-avatar" id="topbar-avatar">AU</div>
+          <span id="topbar-username">Admin Usuario</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:4px;opacity:.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
+        <div id="user-dropdown" style="display:none;position:absolute;top:56px;right:16px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:1000;overflow:hidden"></div>
       </div>
     </div>
     <div id="content"></div>
@@ -958,84 +983,123 @@ const FS = {
 function renderDashboard() {
   const t = state.data.terceros;
   const total = t.length;
-  const altos = t.filter(x => x.riesgo==='alto').length;
+  const altos  = t.filter(x => x.riesgo==='alto').length;
   const medios = t.filter(x => x.riesgo==='medio').length;
-  const bajos = t.filter(x => x.riesgo==='bajo').length;
-  const sinVal = t.filter(x => x.riesgo==='sin valorar' || x.riesgo==='en proceso').length;
-  const planes = state.data.planes || [];
-  const planesActivos = planes.filter(p => p.estado!=='completado').length;
-  const upcoming = t.filter(x => { const d=daysUntil(x.fechaSiguiente); return d!==null && d<=90 && d>0; }).sort((a,b)=>new Date(a.fechaSiguiente)-new Date(b.fechaSiguiente));
-  const ambitoCounts = {};
-  t.forEach(ter => (ter.ambitos||[]).forEach(a => { ambitoCounts[a]=(ambitoCounts[a]||0)+1; }));
+  const bajos  = t.filter(x => x.riesgo==='bajo').length;
+  const sinVal = t.filter(x => !x.riesgo || x.riesgo==='sin valorar').length;
+  const enProceso = state.data.homologaciones.filter(h => h.estadoGlobal !== 'completada').length;
+  const homologados = t.filter(x => ['alto','medio','bajo'].includes(x.riesgo)).length;
+  const pendRenovacion = t.filter(x => { const d=daysUntil(x.fechaSiguiente); return d!==null && d<=90 && d>0; }).length;
+  const vencidos = t.filter(x => { const d=daysUntil(x.fechaSiguiente); return d!==null && d<=0; }).length;
+  const myTasks = getMyTasks();
+
+  // Domain stats
+  const dominios = getDominiosActivos();
+  const domStats = dominios.map(d => {
+    const homs = state.data.homologaciones;
+    const materiales = homs.filter(h => h.dominios?.[d.id]?.scopeResultado === 'material').length;
+    const ddCompletas = homs.filter(h => h.dominios?.[d.id]?.dd?.estado === 'completado').length;
+    const aprobados  = homs.filter(h => h.dominios?.[d.id]?.aprobacion?.estado === 'aprobado').length;
+    return { ...d, materiales, ddCompletas, aprobados, total: homs.length };
+  }).filter(d => d.total > 0);
+
+  // Upcoming renovations
+  const upcoming = t.filter(x => { const d=daysUntil(x.fechaSiguiente); return d!==null && d<=90 && d>0; })
+    .sort((a,b)=>new Date(a.fechaSiguiente)-new Date(b.fechaSiguiente)).slice(0,5);
 
   document.getElementById('content').innerHTML = `
-    <div class="stats-grid">
-      ${[['Total Terceros',total,'var(--accent)','en maestro'],['Riesgo Alto',altos,'var(--red)',`${total?Math.round(altos/total*100):0}% del total`],['Riesgo Medio',medios,'var(--amber)',`${total?Math.round(medios/total*100):0}% del total`],['Riesgo Bajo',bajos,'var(--green)',`${total?Math.round(bajos/total*100):0}% del total`],['Sin Valorar',sinVal,'var(--text3)','pendientes'],['Planes Activos',planesActivos,'var(--purple)','de remediación']].map(([l,v,c,s])=>`
-        <div class="stat-card">
-          <div class="stat-label">${l}</div>
-          <div class="stat-value" style="color:${c}">${v}</div>
-          <div class="stat-sub">${s}</div>
-        </div>
-      `).join('')}
+    <!-- KPIs -->
+    <div class="dash-kpi-grid">
+      ${[
+        ['Total Terceros', total, 'var(--accent)', `${homologados} homologados`],
+        ['En Proceso', enProceso, 'var(--amber)', 'homologaciones activas'],
+        ['Riesgo Alto', altos, 'var(--red)', `${total?Math.round(altos/total*100):0}% del total`],
+        ['Riesgo Medio', medios, 'var(--amber)', `${total?Math.round(medios/total*100):0}% del total`],
+        ['Riesgo Bajo', bajos, 'var(--green)', `${total?Math.round(bajos/total*100):0}% del total`],
+        ['Sin Valorar', sinVal, 'var(--text3)', 'pendientes de proceso'],
+        ['Renovación ≤90d', pendRenovacion, pendRenovacion>0?'var(--amber)':'var(--text3)', `${vencidos} vencidas`],
+      ].map(([l,v,c,s]) => `
+        <div class="dash-kpi">
+          <div class="dash-kpi-value" style="color:${c}">${v}</div>
+          <div class="dash-kpi-label">${l}</div>
+          <div class="dash-kpi-sub">${s}</div>
+        </div>`).join('')}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-      <div class="card">
-        <div class="card-title">Distribución por Nivel de Riesgo</div>
-        <div class="chart-bar">
-          ${[['Alto',altos,'#ef4444'],['Medio',medios,'#f59e0b'],['Bajo',bajos,'#10b981'],['Sin Valorar',sinVal,'#5a6278']].map(([l,v,c])=>`
-            <div class="chart-bar-row">
-              <div class="chart-bar-label">${l}</div>
-              <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${total?v/total*100:0}%;background:${c}">${v>0?v:''}</div></div>
-              <div class="chart-bar-val">${v}</div>
-            </div>
-          `).join('')}
-        </div>
+
+    <!-- MIS TAREAS -->
+    <div style="margin-bottom:20px">
+      <div class="dash-section-title">
+        📥 Mis tareas — ${getCurrentUser()}
+        ${myTasks.length ? `<span style="background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px">${myTasks.length}</span>` : ''}
       </div>
-      <div class="card">
-        <div class="card-title">Distribución por Ámbito</div>
-        <div class="chart-bar">
-          ${Object.entries(ambitoCounts).slice(0,7).map(([amb,cnt])=>{
-            const a = state.data.ambitos.find(x=>x.nombre===amb);
-            return `<div class="chart-bar-row">
-              <div class="chart-bar-label">${amb}</div>
-              <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${total?cnt/total*100:0}%;background:${a?.color||'#3b82f6'}">${cnt>0?cnt:''}</div></div>
-              <div class="chart-bar-val">${cnt}</div>
+      ${myTasks.length ? `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${myTasks.slice(0,5).map(task => {
+            const urgColor = task.urgencia==='alta'?'var(--red)':'var(--amber)';
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-left:4px solid ${urgColor};border-radius:var(--radius)">
+              ${task.domColor?`<span style="width:8px;height:8px;border-radius:50%;background:${task.domColor};flex-shrink:0"></span>`:''}
+              <div style="flex:1;min-width:0">
+                <span style="font-weight:600;font-size:13px">${task.label}</span>
+                <span style="font-size:11px;color:var(--text3);margin-left:8px">${task.terceroNombre} · ${task.detalle}</span>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="navigate('homologaciones');setTimeout(()=>resumeHomTask('${task.homId}','${task.tipo}'),100)">Iniciar →</button>
             </div>`;
-          }).join('') || '<p style="color:var(--text3);font-size:12px">Sin datos</p>'}
-        </div>
-      </div>
+          }).join('')}
+          ${myTasks.length>5?`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px"><a onclick="navigate('homologaciones')" style="cursor:pointer;color:var(--accent)">Ver ${myTasks.length-5} más en Homologaciones →</a></div>`:''}
+        </div>` : `
+        <div style="padding:12px 16px;background:var(--green-soft);border:1px solid rgba(16,185,129,.2);border-radius:var(--radius);font-size:13px;color:var(--green)">
+          ✓ Sin tareas pendientes
+        </div>`}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+    <!-- DOS COLUMNAS -->
+    <div class="dash-two-col">
+
+      <!-- DOMINIOS -->
       <div class="card">
-        <div class="card-title">Próximas Homologaciones <span class="badge badge-amber" style="margin-left:6px">${upcoming.length}</span></div>
+        <div class="card-title">Estado por Dominio</div>
+        ${domStats.length ? domStats.map(d => {
+          const pct = d.materiales > 0 ? Math.round(d.aprobados / d.materiales * 100) : 0;
+          return `<div class="dash-domain-bar">
+            <span style="width:8px;height:8px;border-radius:50%;background:${d.color};flex-shrink:0"></span>
+            <span style="font-size:13px;font-weight:500;min-width:90px">${d.nombre}</span>
+            <div class="dash-domain-progress">
+              <div class="dash-domain-progress-fill" style="width:${pct}%;background:${d.color}"></div>
+            </div>
+            <span style="font-size:11px;color:var(--text3);white-space:nowrap;min-width:90px;text-align:right">
+              ${d.aprobados}/${d.materiales} aprobados
+            </span>
+          </div>`;
+        }).join('') : '<p style="font-size:12px;color:var(--text3)">Inicia homologaciones para ver estadísticas por dominio.</p>'}
+      </div>
+
+      <!-- PRÓXIMAS RENOVACIONES -->
+      <div class="card">
+        <div class="card-title">Próximas Renovaciones <span class="badge badge-amber" style="margin-left:6px">${upcoming.length}</span></div>
         ${upcoming.length ? `<table>
           <thead><tr><th>Tercero</th><th>Fecha</th><th>Días</th><th>Riesgo</th></tr></thead>
-          <tbody>${upcoming.slice(0,5).map(ter=>{
-            const d=daysUntil(ter.fechaSiguiente);
+          <tbody>${upcoming.map(ter => {
+            const d = daysUntil(ter.fechaSiguiente);
             return `<tr>
-              <td style="color:var(--text);font-weight:500">${ter.nombre}</td>
-              <td>${fmtDate(ter.fechaSiguiente)}</td>
+              <td style="font-weight:500;cursor:pointer;color:var(--accent)" onclick="navigate('terceros')">${ter.nombre}</td>
+              <td style="color:var(--text3);font-size:12px">${fmtDate(ter.fechaSiguiente)}</td>
               <td><span class="badge ${d<=30?'badge-red':'badge-amber'}">${d}d</span></td>
               <td>${riskBadge(ter.riesgo)}</td>
             </tr>`;
           }).join('')}</tbody>
         </table>` : '<p style="color:var(--text3);font-size:12px">Sin homologaciones próximas en 90 días.</p>'}
+        ${vencidos>0?`<div style="margin-top:10px;padding:8px 12px;background:var(--red-soft);border-radius:var(--radius-sm);font-size:12px;color:var(--red)">⚠️ ${vencidos} tercero${vencidos>1?'s':''} con renovación vencida</div>`:''}
       </div>
-      <div class="card">
-        <div class="card-title">Planes de Acción Activos</div>
-        ${planes.filter(p=>p.estado!=='completado').slice(0,4).map(p=>{
-          const d=daysUntil(p.fechaLimite);
-          return `<div class="action-plan-card" style="padding:12px;margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;gap:12px;">
-              <div><div style="font-size:13px;font-weight:500;color:var(--text)">${p.titulo}</div><div style="font-size:11px;color:var(--text3);margin-top:3px">${p.terceroNombre}</div></div>
-              <span class="badge ${p.prioridad==='alta'?'badge-red':p.prioridad==='media'?'badge-amber':'badge-green'}">${p.prioridad}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)">
-              <span>👤 ${p.responsable}</span>
-              ${d!==null?`<span style="color:${d<0?'var(--red)':d<=14?'var(--amber)':'var(--text3)'}">📅 ${d<0?'Vencido':d===0?'Hoy':d+'d'}</span>`:''}
-            </div>
-          </div>`;
-        }).join('') || '<p style="color:var(--text3);font-size:12px">Sin planes activos.</p>'}
+    </div>
+
+    <!-- DISTRIBUCIÓN DE RIESGO -->
+    <div class="card">
+      <div class="card-title">Distribución por Nivel de Riesgo</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${[['Alto',altos,'#ef4444'],['Medio',medios,'#f59e0b'],['Bajo',bajos,'#10b981'],['Sin valorar',sinVal,'#6b7280']].map(([l,v,c]) => `
+          <div style="flex:${v||0.1};height:32px;background:${c};opacity:.85;border-radius:4px;display:flex;align-items:center;justify-content:center;min-width:${v?'0':'4px'}">
+            ${v?`<span style="color:white;font-size:11px;font-weight:700;white-space:nowrap;padding:0 6px">${v} ${l}</span>`:''}
+          </div>`).join('')}
       </div>
     </div>
   `;
@@ -1176,6 +1240,7 @@ async function deleteTercero(id) {
 function showTerceroModal(id) {
   const t = id ? state.data.terceros.find(x=>x.id===id) : null;
   const isNew = !t;
+  const hom = id ? getActiveHom(id) || getLastHom(id) : null;
 
   openModal(`
     <div class="modal modal-xl">
@@ -1186,9 +1251,9 @@ function showTerceroModal(id) {
       <div class="modal-body">
         <div class="tabs" id="t-tabs">
           <div class="tab active" onclick="switchTab('datos')">Datos Generales</div>
-          <div class="tab" onclick="switchTab('riesgo')">Riesgo & Comentarios</div>
+          <div class="tab" onclick="switchTab('comentarios')">Comentarios</div>
           <div class="tab" onclick="switchTab('remediacion')">Plan de Remediación</div>
-          ${!isNew ? `<div class="tab" onclick="switchTab('fechas')">Homologación</div>` : ''}
+          ${!isNew ? `<div class="tab" onclick="switchTab('homologacion')">Estado Homologación</div>` : ''}
         </div>
 
         <!-- TAB: DATOS -->
@@ -1224,34 +1289,14 @@ function showTerceroModal(id) {
               ` : ''}
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Ámbitos de Riesgo Aplicables</label>
-            <div class="chip-group">
-              ${renderChipGroup(state.data.ambitos.map(a=>({value:a.nombre,label:a.nombre,color:a.color})), t?.ambitos||[], 'ter-ambitos')}
-            </div>
-          </div>
-          ${isNew ? `
-            <div class="info-box" style="margin-top:12px">
-              ℹ️ Las fechas de homologación se registrarán una vez se complete el cuestionario de evaluación del tercero.
-            </div>
-          ` : ''}
+          ${isNew ? `<div class="info-box" style="margin-top:12px">ℹ️ Los dominios de riesgo aplicables se determinarán automáticamente durante el Scope Check de la homologación.</div>` : ''}
         </div>
 
-        <!-- TAB: RIESGO -->
-        <div id="ttab-riesgo" style="display:none">
-          <div class="form-group">
-            <label class="form-label">Nivel de Riesgo</label>
-            <select class="form-select" id="t-riesgo" style="max-width:280px">
-              <option value="sin valorar" ${(t?.riesgo||'sin valorar')==='sin valorar'?'selected':''}>Sin valorar</option>
-              <option value="en proceso" ${t?.riesgo==='en proceso'?'selected':''}>En proceso</option>
-              <option value="alto" ${t?.riesgo==='alto'?'selected':''}>Alto</option>
-              <option value="medio" ${t?.riesgo==='medio'?'selected':''}>Medio</option>
-              <option value="bajo" ${t?.riesgo==='bajo'?'selected':''}>Bajo</option>
-            </select>
-          </div>
+        <!-- TAB: COMENTARIOS -->
+        <div id="ttab-comentarios" style="display:none">
           <div class="form-group">
             <label class="form-label">Comentarios</label>
-            <textarea class="form-textarea" id="t-comentarios" rows="6" placeholder="Notas, observaciones, contexto...">${t?.comentarios||''}</textarea>
+            <textarea class="form-textarea" id="t-comentarios" rows="8" placeholder="Notas, observaciones, contexto...">${t?.comentarios||''}</textarea>
           </div>
         </div>
 
@@ -1276,26 +1321,47 @@ function showTerceroModal(id) {
           </div>
         </div>
 
-        <!-- TAB: FECHAS (solo edición) -->
+        <!-- TAB: ESTADO HOMOLOGACIÓN (solo edición) -->
         ${!isNew ? `
-          <div id="ttab-fechas" style="display:none">
-            <div class="warn-box" style="margin-bottom:16px">
-              ⚠️ Las fechas de homologación deben actualizarse únicamente tras completar el proceso de evaluación mediante cuestionario.
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Fecha Primera Homologación</label>
-                <input class="form-input" id="t-fechaPrimera" type="date" value="${t?.fechaPrimera||''}">
+          <div id="ttab-homologacion" style="display:none">
+            ${hom ? `
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <div>
+                  <div style="font-size:13px;color:var(--text2)">Riesgo actual: ${riskBadge(t?.riesgo||'sin valorar')}</div>
+                  ${t?.fechaUltima ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">Última homologación: ${fmtDate(t.fechaUltima)} · Próxima: ${fmtDate(t.fechaSiguiente)}</div>` : ''}
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="closeModal();iniciarHom('${t.id}')">Abrir proceso</button>
               </div>
-              <div class="form-group">
-                <label class="form-label">Fecha Última Homologación</label>
-                <input class="form-input" id="t-fechaUltima" type="date" value="${t?.fechaUltima||''}">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fecha Siguiente Homologación</label>
-                <input class="form-input" id="t-fechaSiguiente" type="date" value="${t?.fechaSiguiente||''}">
-              </div>
-            </div>
+              <div class="card" style="padding:0;overflow:hidden">
+                <table class="hom-domain-table">
+                  <thead><tr>
+                    <th>Dominio</th><th>🔍 Scope</th><th>📊 Risk Scoring</th><th>📋 Due Diligence</th><th>✅ Aprobación</th>
+                  </tr></thead>
+                  <tbody>
+                    ${getDominiosActivos().map(d => {
+                      const dom = hom.dominios?.[d.id] || {};
+                      const sc = dom.scopeResultado;
+                      const rs = dom.riskScoring;
+                      const dd = dom.dd;
+                      const apr = dom.aprobacion;
+                      const scPill = sc==='material'?`<span class="dom-fase-pill dom-fase-done">✓ Material</span>`:sc==='no_aplica'?`<span class="dom-fase-pill dom-fase-noapply">Fuera de scope</span>`:`<span class="dom-fase-pill dom-fase-pending">—</span>`;
+                      const rsPill = sc!=='material'?'—':rs?.estado==='completado'?`<span class="dom-fase-pill dom-fase-done">${rs.nivel==='sinDD'?'Sin DD':rs.nivel==='reducida'?'Reducida':'Ampliada'}</span>`:`<span class="dom-fase-pill dom-fase-pending">—</span>`;
+                      const ddNec = sc==='material'&&rs?.estado==='completado'&&rs?.nivel!=='sinDD';
+                      const ddPill = !ddNec?'—':dd?.estado==='completado'?`<span class="dom-fase-pill dom-fase-done">✓</span>`:dd?.estado==='borrador'?`<span class="dom-fase-pill dom-fase-draft">Borrador</span>`:`<span class="dom-fase-pill dom-fase-required">Pendiente</span>`;
+                      const aprNec = ddNec&&dd?.estado==='completado'&&d.cuestionario?.riskScoring?.aprobadores?.[rs?.nivel];
+                      const aprPill = !aprNec?'—':apr?.estado==='aprobado'?`<span class="dom-fase-pill dom-fase-done">✓ ${apr.aprobadoPor}</span>`:`<span class="dom-fase-pill dom-fase-required">Pendiente</span>`;
+                      return `<tr>
+                        <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${d.color}"></span>${d.nombre}</span></td>
+                        <td>${scPill}</td><td>${rsPill}</td><td>${ddPill}</td><td>${aprPill}</td>
+                      </tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>` : `
+              <div class="empty-state" style="padding:40px">
+                <p>Sin proceso de homologación iniciado.</p>
+                <button class="btn btn-primary" style="margin-top:12px" onclick="closeModal();iniciarHom('${t.id}')">Iniciar Homologación</button>
+              </div>`}
           </div>
         ` : ''}
       </div>
@@ -1308,20 +1374,18 @@ function showTerceroModal(id) {
 }
 
 function switchTab(name) {
-  ['datos','riesgo','remediacion','fechas'].forEach(t => {
+  ['datos','comentarios','remediacion','homologacion'].forEach(t => {
     const el = document.getElementById('ttab-'+t); if (el) el.style.display = t===name?'block':'none';
   });
-  document.querySelectorAll('#t-tabs .tab').forEach((el,i) => {
-    const names = ['datos','riesgo','remediacion','fechas'];
-    el.classList.toggle('active', names[i]===name);
+  document.querySelectorAll('#t-tabs .tab').forEach(el => {
+    const onclick = el.getAttribute('onclick')||'';
+    el.classList.toggle('active', onclick.includes(`'${name}'`));
   });
 }
 
 async function saveTercero(id) {
   const nombre = document.getElementById('t-nombre')?.value?.trim();
   if (!nombre) { notify('El nombre es obligatorio', 'error'); return; }
-
-  const ambitos = getChipValues('ter-ambitos');
 
   const existing = id ? state.data.terceros.find(x=>x.id===id) : null;
   const item = {
@@ -1335,12 +1399,11 @@ async function saveTercero(id) {
     representante:document.getElementById('t-representante')?.value||'',
     responsable:  document.getElementById('t-responsable')?.value||'',
     tipo:         document.getElementById('t-tipo')?.value||'',
-    ambitos,
-    // Fechas: solo en edición (tab fechas); en creación se quedan vacías
-    fechaPrimera:  document.getElementById('t-fechaPrimera')?.value  || existing?.fechaPrimera  || '',
-    fechaUltima:   document.getElementById('t-fechaUltima')?.value   || existing?.fechaUltima   || '',
-    fechaSiguiente:document.getElementById('t-fechaSiguiente')?.value|| existing?.fechaSiguiente|| '',
-    riesgo:        document.getElementById('t-riesgo')?.value || existing?.riesgo || 'sin valorar',
+    // riesgo viene del proceso de homologación, no editable manualmente
+    riesgo:       existing?.riesgo || 'sin valorar',
+    fechaPrimera:  existing?.fechaPrimera  || '',
+    fechaUltima:   existing?.fechaUltima   || '',
+    fechaSiguiente:existing?.fechaSiguiente|| '',
     comentarios:   document.getElementById('t-comentarios')?.value||'',
     remediacion:   document.getElementById('t-remediacion')?.value||'',
     remediacionUser:document.getElementById('t-remediacionUser')?.value||'',
@@ -3344,8 +3407,9 @@ function renderHWBody() {
     const domApr = d.cuestionario?.riskScoring?.aprobadores?.[rs.nivel];
     const aprNecesaria = ddNecesaria && dd.estado === 'completado' && domApr;
     const aprCell = !aprNecesaria ? '<span style="color:var(--text3)">—</span>' :
-                    apr.estado === 'aprobado' ? `<span class="dom-fase-pill dom-fase-done">✓ ${apr.aprobadoPor}</span>` :
-                    `<span class="dom-fase-pill dom-fase-required">Pendiente</span>`;
+                    apr.estado === 'aprobado'  ? `<span class="dom-fase-pill dom-fase-done" title="${fmtDate(apr.fecha)}${apr.comentario?' — '+apr.comentario:''}">✓ ${apr.aprobadoPor}</span>` :
+                    apr.estado === 'rechazado' ? `<span class="dom-fase-pill dom-fase-required" title="${apr.comentario||''}">✗ Rechazada</span>` :
+                    `<span class="dom-fase-pill dom-fase-pending" title="Esperando a ${domApr}">⏳ ${domApr}</span>`;
 
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px">
@@ -3395,6 +3459,30 @@ function renderHWBody() {
     </div>
   `;
 
+  // ── Historial de aprobaciones ───────────────────────────────
+  const historial = [];
+  dominiosActivos.forEach(d => {
+    const dom = hom.dominios?.[d.id];
+    const apr = dom?.aprobacion;
+    if (apr?.estado === 'aprobado' || apr?.estado === 'rechazado') {
+      historial.push({ dominio:d.nombre, color:d.color, ...apr, nivel:dom.riskScoring.nivel });
+    }
+  });
+
+  const histSection = historial.length ? `
+    <div style="margin-top:20px">
+      <div class="dash-section-title">📋 Historial de aprobaciones</div>
+      ${historial.map(h => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:6px;background:var(--surface)">
+          <span style="width:8px;height:8px;border-radius:50%;background:${h.color};flex-shrink:0"></span>
+          <span style="font-weight:500;font-size:13px;flex:1">${h.dominio}</span>
+          <span style="font-size:11px;color:var(--text3)">DD ${h.nivel==='ampliada'?'Ampliada':'Reducida'}</span>
+          <span style="font-size:11px;font-weight:600;color:${h.estado==='aprobado'?'var(--green)':'var(--red)'}">${h.estado==='aprobado'?'✓ Aprobado':'✗ Rechazado'}</span>
+          <span style="font-size:11px;color:var(--text3)">por ${h.aprobadoPor} · ${fmtDate(h.fecha)}</span>
+          ${h.comentario?`<span style="font-size:11px;color:var(--text2);font-style:italic">"${h.comentario.slice(0,50)}${h.comentario.length>50?'…':''}"</span>`:''}
+        </div>`).join('')}
+    </div>` : '';
+
   return `
     <div style="margin-bottom:20px">
       <div class="card" style="padding:0;overflow:hidden">
@@ -3411,6 +3499,7 @@ function renderHWBody() {
       </div>
     </div>
     ${actions}
+    ${histSection}
   `;
 }
 
@@ -3844,12 +3933,22 @@ async function hwCompletarDomDD() {
   HW.hom.dominios[d.id].dd = { ...HW.hom.dominios[d.id].dd, estado:'completado', score, hasFlag };
   await saveItem('homologaciones', HW.hom);
   notify(`✅ DD de ${d.nombre} completada`);
+
   const dominios = getDominiosActivos().filter(dx => {
     const dom = HW.hom.dominios[dx.id];
     return dom?.scopeResultado === 'material' && dom?.riskScoring.estado === 'completado' && dom?.riskScoring.nivel !== 'sinDD';
   });
-  document.getElementById('dd-tabs').innerHTML = renderDDTabs(dominios);
-  document.getElementById('dd-body').innerHTML = renderDDBody(dominios);
+  const todosCompletados = dominios.every(dx => HW.hom.dominios[dx.id]?.dd?.estado === 'completado');
+
+  if (todosCompletados) {
+    hwStopAutosave();
+    notify('✅ Due Diligence completa para todos los dominios');
+    closeModal();
+    openHWPanel();
+  } else {
+    document.getElementById('dd-tabs').innerHTML = renderDDTabs(dominios);
+    document.getElementById('dd-body').innerHTML = renderDDBody(dominios);
+  }
 }
 
 function isAnsweredV2(p, resp) {
@@ -3860,10 +3959,11 @@ function isAnsweredV2(p, resp) {
 
 // ── APROBACIÓN ────────────────────────────────────────────────
 function openAprobacionPanel() {
+  const me = getCurrentUser();
   const dominios = getDominiosActivos().filter(d => {
     const dom = HW.hom.dominios[d.id];
     const aprReq = d.cuestionario?.riskScoring?.aprobadores?.[dom?.riskScoring?.nivel];
-    return dom?.dd?.estado === 'completado' && aprReq;
+    return dom?.dd?.estado === 'completado' && aprReq && dom.aprobacion?.estado !== 'aprobado';
   });
 
   openModal(`
@@ -3877,25 +3977,35 @@ function openAprobacionPanel() {
           const dom = HW.hom.dominios[d.id];
           const aprobador = d.cuestionario?.riskScoring?.aprobadores?.[dom.riskScoring.nivel];
           const apr = dom.aprobacion;
-          return `<div style="padding:16px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;border-left:4px solid ${d.color}">
+          const esMio = aprobador === me;
+          const wasRejected = apr?.estado === 'rechazado';
+          return `<div style="padding:16px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;border-left:4px solid ${esMio ? 'var(--accent)' : 'var(--border2)'}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
               <div>
-                <div style="font-weight:600;color:var(--text)">${d.nombre}</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">DD ${dom.riskScoring.nivel==='ampliada'?'Ampliada':'Reducida'} · ${dom.dd.score}pts${dom.dd.hasFlag?' 🚩':''}</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:10px;height:10px;border-radius:50%;background:${d.color}"></span>
+                  <span style="font-weight:600;color:var(--text)">${d.nombre}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text3);margin-top:3px">
+                  DD ${dom.riskScoring.nivel==='ampliada'?'Ampliada':'Reducida'} · ${dom.dd.score}pts${dom.dd.hasFlag?' 🚩':''}
+                </div>
               </div>
-              ${apr.estado==='aprobado'
-                ? `<span class="dom-fase-pill dom-fase-done">✓ Aprobado por ${apr.aprobadoPor}</span>`
-                : `<span class="dom-fase-pill dom-fase-required">⏳ Pendiente · ${aprobador}</span>`}
+              ${esMio
+                ? `<span class="dom-fase-pill" style="background:var(--accent-glow);color:var(--accent)">📥 Tuya</span>`
+                : `<span class="dom-fase-pill dom-fase-pending">⏳ Esperando a ${aprobador}</span>`}
             </div>
-            ${apr.estado !== 'aprobado' ? `
+            ${esMio ? `
               <div class="form-group" style="margin-bottom:8px">
                 <label class="form-label">Comentario (opcional)</label>
-                <textarea class="form-textarea" id="apr-com-${d.id}" rows="2" placeholder="Observaciones...">${apr.comentario||''}</textarea>
+                <textarea class="form-textarea" id="apr-com-${d.id}" rows="2" placeholder="Observaciones...">${apr?.comentario||''}</textarea>
               </div>
               <div style="display:flex;gap:8px">
-                <button class="btn btn-success btn-sm" onclick="hwAprobarDominio('${d.id}')">${SVG.check} Aprobar ${d.nombre}</button>
-                <button class="btn btn-danger btn-sm" onclick="hwRechazarDominio('${d.id}')">✗ Rechazar</button>
-              </div>` : `<div style="font-size:12px;color:var(--text3)">Aprobado el ${fmtDate(apr.fecha)}${apr.comentario?' · '+apr.comentario:''}</div>`}
+                <button class="btn btn-success btn-sm" onclick="hwAprobarDominio('${d.id}')">${SVG.check} Aprobar</button>
+                <button class="btn btn-danger btn-sm" onclick="hwRechazarDominio('${d.id}')">✗ Rechazar y devolver DD</button>
+              </div>` :
+              `<div style="font-size:12px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:var(--radius-sm)">
+                Solo <strong>${aprobador}</strong> puede aprobar este dominio. Cambia de usuario en la topbar para simular.
+              </div>`}
           </div>`;
         }).join('')}
       </div>
@@ -3909,26 +4019,29 @@ function openAprobacionPanel() {
 async function hwAprobarDominio(domId) {
   const d = state.data.ambitos.find(a => a.id === domId);
   const comentario = document.getElementById(`apr-com-${domId}`)?.value || '';
-  HW.hom.dominios[domId].aprobacion = { estado:'aprobado', aprobadoPor:'Admin Usuario', fecha:new Date().toISOString().split('T')[0], comentario };
+  const me = getCurrentUser();
+  HW.hom.dominios[domId].aprobacion = { estado:'aprobado', aprobadoPor:me, fecha:new Date().toISOString().split('T')[0], comentario };
   await saveItem('homologaciones', HW.hom);
   notify(`✅ ${d?.nombre} aprobado`);
-  // Check if all approved
-  const allDone = getDominiosActivos().every(dom => {
+  // Check if all approved → close and go to main panel
+  const pendientes = getDominiosActivos().filter(dom => {
     const dd = HW.hom.dominios[dom.id];
     const aprReq = dom.cuestionario?.riskScoring?.aprobadores?.[dd?.riskScoring?.nivel];
-    return !aprReq || dd?.aprobacion?.estado === 'aprobado';
+    return aprReq && !['aprobado'].includes(dd?.aprobacion?.estado) && dd?.dd?.estado === 'completado';
   });
-  if (allDone) { closeModal(); openHWPanel(); }
+  if (!pendientes.length) { closeModal(); openHWPanel(); }
   else openAprobacionPanel();
 }
 
 async function hwRechazarDominio(domId) {
   const d = state.data.ambitos.find(a => a.id === domId);
   const comentario = document.getElementById(`apr-com-${domId}`)?.value || '';
-  HW.hom.dominios[domId].aprobacion = { estado:'rechazado', aprobadoPor:'Admin Usuario', fecha:new Date().toISOString().split('T')[0], comentario };
-  HW.hom.dominios[domId].dd.estado = 'pendiente'; // Reset DD for this domain
+  const me = getCurrentUser();
+  // Mark as rejected and reset DD so it appears in tasks again
+  HW.hom.dominios[domId].aprobacion = { estado:'rechazado', aprobadoPor:me, fecha:new Date().toISOString().split('T')[0], comentario };
+  HW.hom.dominios[domId].dd.estado = 'pendiente';
   await saveItem('homologaciones', HW.hom);
-  notify(`⚠️ ${d?.nombre} rechazado — DD requiere revisión`);
+  notify(`⚠️ ${d?.nombre} rechazado — DD devuelta al responsable`);
   closeModal();
   openHWPanel();
 }
@@ -4457,43 +4570,199 @@ function isAnswered(p, resp) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  HOMOLOGACIONES — list page
+//  HOMOLOGACIONES — list page with tasks panel
 // ══════════════════════════════════════════════════════════════
+const CURRENT_USER = 'Admin Usuario'; // kept for legacy — use getCurrentUser() instead
+
+function getCurrentUser() {
+  return state.currentUser || 'Admin Usuario';
+}
+
+function setCurrentUser(nombre) {
+  state.currentUser = nombre;
+  // Update topbar
+  const u = state.data.usuarios.find(x => x.nombre === nombre);
+  const initials = nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avatar = document.getElementById('topbar-avatar');
+  const uname  = document.getElementById('topbar-username');
+  if (avatar) { avatar.textContent = initials; avatar.style.background = `hsl(${nombre.length*37%360},60%,45%)`; }
+  if (uname)  uname.textContent = nombre;
+  closeUserDropdown();
+  // Refresh current page to update task filters
+  navigate(state.currentPage);
+}
+
+function toggleUserDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  if (!dd) return;
+  if (dd.style.display === 'none') {
+    dd.style.display = 'block';
+    dd.innerHTML = state.data.usuarios.map(u => {
+      const initials = u.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const bg = `hsl(${u.nombre.length*37%360},60%,45%)`;
+      const isActive = u.nombre === getCurrentUser();
+      return `<div class="user-dropdown-item ${isActive?'active':''}" onclick="setCurrentUser('${u.nombre}')">
+        <div class="ud-avatar" style="background:${bg};color:white">${initials}</div>
+        <div>
+          <div style="font-weight:${isActive?'600':'400'}">${u.nombre}</div>
+          <div style="font-size:10px;color:var(--text3)">${(u.roles||[]).join(', ')}</div>
+        </div>
+        ${isActive ? '<span style="margin-left:auto;color:var(--accent);font-size:12px">●</span>' : ''}
+      </div>`;
+    }).join('') + `<div style="border-top:1px solid var(--border);padding:6px 10px;font-size:10px;color:var(--text3)">
+      Selector de usuario simulado — sin autenticación real
+    </div>`;
+    document.addEventListener('click', closeUserDropdownOutside, { once:true });
+  } else {
+    closeUserDropdown();
+  }
+}
+
+function closeUserDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function closeUserDropdownOutside(e) {
+  const btn = document.getElementById('user-badge-btn');
+  if (btn && !btn.contains(e.target)) closeUserDropdown();
+}
+
+function getMyTasks() {
+  const me = getCurrentUser();
+  const tasks = [];
+  state.data.homologaciones.forEach(hom => {
+    if (hom.estadoGlobal === 'completada') return;
+    const tercero = state.data.terceros.find(t => t.id === hom.terceroId);
+    if (!tercero) return;
+
+    // Scope Check
+    if (hom.scopeCheck.estado !== 'completado') {
+      if (!tercero.responsable || tercero.responsable === me) {
+        tasks.push({ homId:hom.id, terceroNombre:hom.terceroNombre, tipo:'scope', label:'🔍 Scope Check pendiente', detalle:'Determinar dominios aplicables', urgencia:'media' });
+      }
+    }
+
+    getDominiosActivos().forEach(d => {
+      const dom = hom.dominios?.[d.id];
+      if (!dom) return;
+      const esMio = !d.responsable || d.responsable === me;
+
+      // Risk Scoring
+      if (dom.scopeResultado === 'material' && dom.riskScoring.estado !== 'completado' && hom.scopeCheck.estado === 'completado' && esMio) {
+        tasks.push({ homId:hom.id, terceroNombre:hom.terceroNombre, tipo:'riskScoring', label:`📊 Risk Scoring — ${d.nombre}`, detalle:'Evaluación interna de riesgo', urgencia:'media', domColor:d.color });
+      }
+
+      // Due Diligence
+      if (dom.scopeResultado === 'material' && dom.riskScoring.estado === 'completado' && dom.riskScoring.nivel !== 'sinDD' && dom.dd.estado !== 'completado' && esMio) {
+        const rechazada = dom.aprobacion?.estado === 'rechazado';
+        tasks.push({ homId:hom.id, terceroNombre:hom.terceroNombre, tipo:'dd',
+          label:`📋 Due Diligence — ${d.nombre}${rechazada?' ⚠️':''}`,
+          detalle:`DD ${dom.riskScoring.nivel==='ampliada'?'Ampliada':'Reducida'}${dom.dd.estado==='borrador'?' (borrador)':''}${rechazada?' — Rechazada: '+(dom.aprobacion.comentario||'sin comentario'):''}`,
+          urgencia: rechazada ? 'alta' : dom.riskScoring.nivel==='ampliada' ? 'alta' : 'media', domColor:d.color });
+      }
+
+      // Aprobaciones
+      const aprobadorReq = d.cuestionario?.riskScoring?.aprobadores?.[dom.riskScoring?.nivel];
+      if (dom.dd?.estado === 'completado' && aprobadorReq && !['aprobado','rechazado'].includes(dom.aprobacion?.estado) && aprobadorReq === me) {
+        tasks.push({ homId:hom.id, terceroNombre:hom.terceroNombre, tipo:'aprobacion',
+          label:`✅ Aprobar — ${d.nombre}`,
+          detalle:`DD ${dom.riskScoring.nivel==='ampliada'?'Ampliada':'Reducida'} · ${dom.dd.score}pts${dom.dd.hasFlag?' 🚩':''}`,
+          urgencia:'alta', domColor:d.color });
+      }
+    });
+  });
+  return tasks;
+}
+
 function renderHomologaciones() {
   const homs = state.data.homologaciones;
-  const content = document.getElementById('content');
-  content.innerHTML = `
+  const tasks = getMyTasks();
+  const activas    = homs.filter(h => h.estadoGlobal !== 'completada');
+  const completadas = homs.filter(h => h.estadoGlobal === 'completada');
+
+  document.getElementById('content').innerHTML = `
     <div class="section-header">
-      <div><div class="section-title">Homologaciones</div><div class="section-sub">${homs.length} procesos</div></div>
+      <div><div class="section-title">Homologaciones</div>
+        <div class="section-sub">${activas.length} en curso · ${completadas.length} completadas</div>
+      </div>
     </div>
-    ${!homs.length ? `<div class="empty-state"><p>Sin homologaciones. Inicia una desde el Maestro de Terceros.</p></div>` : `
-    <div class="card" style="padding:0">
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th>Tercero</th><th>Inicio</th><th>Estado global</th><th>Dominios</th><th>Riesgo final</th><th>Cierre</th><th></th>
-        </tr></thead>
-        <tbody>${homs.sort((a,b)=>new Date(b.fechaInicio)-new Date(a.fechaInicio)).map(h => {
-          const totalDoms = Object.keys(h.dominios||{}).length;
-          const materiales = Object.values(h.dominios||{}).filter(d=>d.scopeResultado==='material').length;
-          const completados = Object.values(h.dominios||{}).filter(d=>d.dd?.estado==='completado'||d.riskScoring?.nivel==='sinDD').length;
-          const statusLabel = h.estadoGlobal === 'completada'
-            ? '<span class="hom-status hom-completada">✅ Homologado</span>'
-            : '<span class="hom-status hom-scoring">🔄 En curso</span>';
+
+    <!-- MIS TAREAS -->
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        📥 Mis tareas
+        ${tasks.length ? `<span style="background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px">${tasks.length}</span>` : ''}
+      </div>
+      ${tasks.length ? `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${tasks.map(task => {
+            const urgColor = task.urgencia === 'alta' ? 'var(--red)' : 'var(--amber)';
+            return `<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:4px solid ${urgColor};border-radius:var(--radius)">
+              ${task.domColor ? `<span style="width:10px;height:10px;border-radius:50%;background:${task.domColor};flex-shrink:0"></span>` : ''}
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px">${task.label}</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">${task.terceroNombre} · ${task.detalle}</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${task.urgencia==='alta'?'var(--red-soft)':'var(--amber-soft)'};color:${urgColor};text-transform:uppercase">${task.urgencia}</span>
+              <button class="btn btn-primary btn-sm" onclick="resumeHomTask('${task.homId}','${task.tipo}')">Iniciar →</button>
+            </div>`;
+          }).join('')}
+        </div>` : `
+        <div style="padding:12px 16px;background:var(--green-soft);border:1px solid rgba(16,185,129,.2);border-radius:var(--radius);font-size:13px;color:var(--green)">
+          ✓ Sin tareas pendientes asignadas a ti
+        </div>`}
+    </div>
+
+    <!-- EN CURSO -->
+    ${activas.length ? `
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">En curso</div>
+    <div class="card" style="padding:0;margin-bottom:24px">
+      <table class="hom-domain-table">
+        <thead><tr><th>Tercero</th><th>Inicio</th><th>Scope</th><th>Risk Scoring</th><th>Due Diligence</th><th></th></tr></thead>
+        <tbody>${activas.map(h => {
+          const doms = Object.values(h.dominios||{});
+          const total = Object.keys(h.dominios||{}).length;
+          const materiales = doms.filter(d=>d.scopeResultado==='material').length;
+          const rsOk = doms.filter(d=>d.scopeResultado==='material'&&d.riskScoring.estado==='completado').length;
+          const ddOk = doms.filter(d=>d.dd?.estado==='completado').length;
+          const ddReq = doms.filter(d=>d.scopeResultado==='material'&&d.riskScoring.estado==='completado'&&d.riskScoring.nivel!=='sinDD').length;
           return `<tr>
             <td style="font-weight:500">${h.terceroNombre}</td>
-            <td>${fmtDate(h.fechaInicio)}</td>
-            <td>${statusLabel}</td>
-            <td><span style="font-size:12px;color:var(--text2)">${materiales}/${totalDoms} materiales</span></td>
-            <td>${h.riesgoFinal ? riskBadge(h.riesgoFinal) : '—'}</td>
-            <td>${fmtDate(h.fechaCierre)}</td>
+            <td style="color:var(--text3);font-size:12px">${fmtDate(h.fechaInicio)}</td>
+            <td>${h.scopeCheck.estado==='completado'?`<span class="dom-fase-pill dom-fase-done">✓ ${materiales}/${total} mat.</span>`:`<span class="dom-fase-pill dom-fase-pending">Pendiente</span>`}</td>
+            <td><span class="${rsOk===materiales&&materiales>0?'dom-fase-pill dom-fase-done':'dom-fase-pill dom-fase-pending'}">${rsOk}/${materiales}</span></td>
+            <td><span class="${ddReq>0&&ddOk===ddReq?'dom-fase-pill dom-fase-done':'dom-fase-pill dom-fase-pending'}">${ddOk}/${ddReq}</span></td>
             <td><div style="display:flex;gap:4px">
               <button class="btn btn-primary btn-sm" onclick="resumeHom('${h.id}')">Abrir</button>
               <button class="btn btn-danger btn-icon btn-sm" onclick="deleteHom('${h.id}')">${SVG.trash}</button>
             </div></td>
           </tr>`;
         }).join('')}</tbody>
-      </table></div>
-    </div>`}`;
+      </table>
+    </div>` : ''}
+
+    <!-- COMPLETADAS -->
+    ${completadas.length ? `
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Completadas</div>
+    <div class="card" style="padding:0">
+      <table class="hom-domain-table">
+        <thead><tr><th>Tercero</th><th>Cierre</th><th>Riesgo</th><th>Próxima renovación</th><th></th></tr></thead>
+        <tbody>${completadas.map(h => {
+          const ter = state.data.terceros.find(t=>t.id===h.terceroId);
+          return `<tr>
+            <td style="font-weight:500">${h.terceroNombre}</td>
+            <td style="color:var(--text3);font-size:12px">${fmtDate(h.fechaCierre)}</td>
+            <td>${riskBadge(h.riesgoFinal)}</td>
+            <td style="color:var(--text3);font-size:12px">${fmtDate(ter?.fechaSiguiente)||'—'}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="resumeHom('${h.id}')">Ver</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : ''}
+
+    ${!homs.length ? `<div class="empty-state"><p>Sin homologaciones. Inicia una desde el Maestro de Terceros.</p></div>` : ''}
+  `;
 }
 
 async function deleteHom(id) {
@@ -4509,6 +4778,18 @@ function resumeHom(id) {
   if (!h||!t) return;
   HW = { hom:h, tercero:t };
   openHWPanel();
+}
+
+function resumeHomTask(homId, tipo) {
+  const h = state.data.homologaciones.find(x=>x.id===homId);
+  const t = state.data.terceros.find(x=>x.id===h?.terceroId);
+  if (!h||!t) return;
+  HW = { hom:h, tercero:t };
+  if (tipo === 'scope') openScopeCheckSession();
+  else if (tipo === 'riskScoring') openRiskScoringSession();
+  else if (tipo === 'dd') openDDSession();
+  else if (tipo === 'aprobacion') openAprobacionPanel();
+  else openHWPanel();
 }
 
 // ══════════════════════════════════════════════════════════════
