@@ -1901,28 +1901,63 @@ function dwCheckDup(val) {
   if (el) el.style.display = dup ? 'block' : 'none';
 }
 
+function dwFilterPreguntas(allPregs, phase) {
+  const filterCat  = DW[`filter_cat_${phase}`]  || '';
+  const filterTipo = DW[`filter_tipo_${phase}`] || '';
+  if (!filterCat && !filterTipo) return allPregs;
+  return allPregs.filter(p => {
+    const aplicaA = p.aplicaA;
+    // "Todos" preguntas always visible when no specific filter matches
+    const esParaTodos = !aplicaA || aplicaA === 'todos' || (Array.isArray(aplicaA) && !aplicaA.length);
+    if (filterCat && filterTipo) {
+      // Both filters active — show if matches either cat OR specific tipo
+      if (esParaTodos) return true;
+      const vals = Array.isArray(aplicaA) ? aplicaA : [aplicaA];
+      return vals.includes(filterCat) || vals.includes(filterTipo);
+    }
+    if (filterCat) {
+      if (esParaTodos) return true;
+      const vals = Array.isArray(aplicaA) ? aplicaA : [aplicaA];
+      return vals.includes(filterCat);
+    }
+    if (filterTipo) {
+      if (esParaTodos) return true;
+      const vals = Array.isArray(aplicaA) ? aplicaA : [aplicaA];
+      return vals.includes(filterTipo);
+    }
+    return true;
+  });
+}
+
 function renderDWQuestions(phase) {
   const allPregs = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
-  const filterVal = DW[`filter_${phase}`] || 'todos';
-  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
+  const preguntas = dwFilterPreguntas(allPregs, phase);
   const phaseLabels = { scopeCheck:'Scope Check', dd:'Due Diligence' };
-
   const libSuggestions = getBibliotecaSuggestions(phase, '');
+  const filterCat  = DW[`filter_cat_${phase}`]  || '';
+  const filterTipo = DW[`filter_tipo_${phase}`] || '';
+  const hasFilter  = filterCat || filterTipo;
 
   return `
     <div class="builder-layout">
       <div>
         <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:12px;flex-wrap:wrap">
             <div style="font-weight:600;font-size:14px">${phaseLabels[phase]||phase}</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:var(--text3)">Filtrar por tipo:</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--text3)">Filtrar:</span>
               <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
-                onchange="DW['filter_${phase}']=this.value;document.getElementById('dw-qlist-${phase}').innerHTML=renderDWFilteredList('${phase}')">
-                <option value="todos" ${filterVal==='todos'?'selected':''}>Todos</option>
-                <option value="directo" ${filterVal==='directo'?'selected':''}>Solo Directo</option>
-                <option value="indirecto" ${filterVal==='indirecto'?'selected':''}>Solo Indirecto</option>
+                onchange="DW['filter_cat_${phase}']=this.value;document.getElementById('dw-qlist-${phase}').innerHTML=renderDWFilteredList('${phase}')">
+                <option value="" ${!filterCat?'selected':''}>Todas las categorías</option>
+                <option value="cat:directo"   ${filterCat==='cat:directo'?'selected':''}>➡️ Directo</option>
+                <option value="cat:indirecto" ${filterCat==='cat:indirecto'?'selected':''}>↩️ Indirecto</option>
               </select>
+              <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
+                onchange="DW['filter_tipo_${phase}']=this.value;document.getElementById('dw-qlist-${phase}').innerHTML=renderDWFilteredList('${phase}')">
+                <option value="" ${!filterTipo?'selected':''}>Todos los tipos</option>
+                ${state.data.tipos.map(t=>`<option value="${t.id}" ${filterTipo===t.id?'selected':''}>${t.nivel2||t.nivel1}</option>`).join('')}
+              </select>
+              ${hasFilter?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="DW['filter_cat_${phase}']='';DW['filter_tipo_${phase}']='';document.getElementById('dw-qlist-${phase}').innerHTML=renderDWFilteredList('${phase}')">✕ Limpiar</button>`:''}
             </div>
           </div>
           <div style="font-size:11px;color:var(--text3)">
@@ -1939,19 +1974,15 @@ function renderDWQuestions(phase) {
           </div>` : ''}
         ${phase === 'dd' && allPregs.some(p=>!p.soloAmpliada) ? `
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--green-soft);border-radius:var(--radius-sm);font-size:11px;color:var(--green)">
-            🟡 <strong>DD Reducida</strong>: preguntas sin marca · 
-            🔴 <strong>DD Ampliada</strong>: todas las preguntas
+            🟡 <strong>DD Reducida</strong>: preguntas sin marca · 🔴 <strong>DD Ampliada</strong>: todas las preguntas
           </div>` : ''}
         <div id="dw-qlist-${phase}">
-          ${preguntas.length ? preguntas.map((p,i)=>{
-            const realIdx = allPregs.indexOf(p);
-            return renderDWQuestionCard(p, realIdx, phase);
-          }).join('') :
+          ${preguntas.length ? preguntas.map(p => renderDWQuestionCard(p, allPregs.indexOf(p), phase)).join('') :
             `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
-              <p style="font-size:13px">${filterVal!=='todos'?'Sin preguntas para este tipo. Cambia el filtro o añade una nueva.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
+              <p style="font-size:13px">${hasFilter?'Sin preguntas para este filtro. Cambia los filtros o añade una nueva.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
             </div>`}
         </div>
-        <div style="margin-top:14px;display:flex;justify-content:flex-start">
+        <div style="margin-top:14px">
           <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('${phase}')">${SVG.plus} Añadir pregunta</button>
         </div>
       </div>
@@ -1968,13 +1999,10 @@ function renderDWQuestions(phase) {
 
 function renderDWFilteredList(phase) {
   const allPregs = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
-  const filterVal = DW[`filter_${phase}`] || 'todos';
-  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
-  if (!preguntas.length) return `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)"><p style="font-size:13px">Sin preguntas para este filtro.</p></div>`;
-  return preguntas.map(p => {
-    const realIdx = allPregs.indexOf(p);
-    return renderDWQuestionCard(p, realIdx, phase);
-  }).join('');
+  const preguntas = dwFilterPreguntas(allPregs, phase);
+  const hasFilter = DW[`filter_cat_${phase}`] || DW[`filter_tipo_${phase}`];
+  if (!preguntas.length) return `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)"><p style="font-size:13px">${hasFilter?'Sin preguntas para este filtro.':'Sin preguntas.'}</p></div>`;
+  return preguntas.map(p => renderDWQuestionCard(p, allPregs.indexOf(p), phase)).join('');
 }
 
 function getBibliotecaSuggestions(phase, query) {
@@ -2034,15 +2062,13 @@ function renderDWQuestionCard(p, idx, phase) {
             <option value="abierta" ${p.tipo==='abierta'?'selected':''}>Abierta</option>
           </select>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer">
-            <input type="checkbox" ${p.obligatoria?'checked':''} onchange="DW.cuestionario['${phase}'].preguntas[${idx}].obligatoria=this.checked"> Obligatoria
+            <input type="checkbox" ${p.obligatoria?'checked':''} onchange="DW.cuestionario['${phase === 'dd' ? 'dd' : phase}'].preguntas[${idx}].obligatoria=this.checked"> Obligatoria
           </label>
-          <select class="form-select" style="width:auto;font-size:11px;padding:3px 6px"
-            title="Aplica a tipo de tercero"
-            onchange="DW.cuestionario['${phase === 'dd' ? 'dd' : phase}'].preguntas[${idx}].aplicaA=this.value;dwRefreshQList('${phase}')">
-            <option value="todos" ${(p.aplicaA||'todos')==='todos'?'selected':''}>👥 Todos</option>
-            <option value="directo" ${p.aplicaA==='directo'?'selected':''}>➡️ Directo</option>
-            <option value="indirecto" ${p.aplicaA==='indirecto'?'selected':''}>↩️ Indirecto</option>
-          </select>
+          <div style="position:relative;display:inline-block">
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border:1px solid var(--border2)" onclick="dwToggleAplicaMenu(this,'${phase}',${idx})">
+              ${renderAplicaALabel(p.aplicaA)} ▾
+            </button>
+          </div>
           ${isFromLib ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-glow);color:var(--accent)">📚 Biblioteca</span>` : ''}
           ${phase === 'dd' ? `<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid ${p.soloAmpliada?'var(--red)':'var(--border)'};background:${p.soloAmpliada?'var(--red-soft)':'transparent'};color:${p.soloAmpliada?'var(--red)':'var(--text3)'}" title="Solo aparece en DD Ampliada">
             <input type="checkbox" ${p.soloAmpliada?'checked':''} onchange="DW.cuestionario['dd'].preguntas[${idx}].soloAmpliada=this.checked;dwRefreshQList('dd')"> Solo Ampliada
@@ -2129,15 +2155,13 @@ function dwRefreshQList(phase) {
   if (!el) return;
   const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
   const allPregs = target?.preguntas || [];
-  const filterVal = DW[`filter_${phase}`] || 'todos';
-  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
-  el.innerHTML = preguntas.length ? preguntas.map(p => {
-    const realIdx = allPregs.indexOf(p);
-    return renderDWQuestionCard(p, realIdx, phase);
-  }).join('') :
-    `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
-      <p style="font-size:13px">${filterVal!=='todos'?'Sin preguntas para este tipo.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
-    </div>`;
+  const preguntas = dwFilterPreguntas(allPregs, phase);
+  const hasFilter = DW[`filter_cat_${phase}`] || DW[`filter_tipo_${phase}`];
+  el.innerHTML = preguntas.length
+    ? preguntas.map(p => renderDWQuestionCard(p, allPregs.indexOf(p), phase)).join('')
+    : `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
+        <p style="font-size:13px">${hasFilter?'Sin preguntas para este filtro.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
+      </div>`;
   dwRefreshTabCounts();
 }
 
@@ -2229,10 +2253,15 @@ function renderDWRiskScoring() {
             <div style="font-size:11px;color:var(--text3);margin-top:2px">Evaluadas internamente por tu equipo</div>
           </div>
           <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
-            onchange="DW['filter_riskScoring']=this.value;document.getElementById('dw-qlist-riskScoring').innerHTML=renderDWFilteredList('riskScoring')">
-            <option value="todos">Todos</option>
-            <option value="directo">Solo Directo</option>
-            <option value="indirecto">Solo Indirecto</option>
+            onchange="DW['filter_cat_riskScoring']=this.value;document.getElementById('dw-qlist-riskScoring').innerHTML=renderDWFilteredList('riskScoring')">
+            <option value="">Todas las categorías</option>
+            <option value="cat:directo">➡️ Directo</option>
+            <option value="cat:indirecto">↩️ Indirecto</option>
+          </select>
+          <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
+            onchange="DW['filter_tipo_riskScoring']=this.value;document.getElementById('dw-qlist-riskScoring').innerHTML=renderDWFilteredList('riskScoring')">
+            <option value="">Todos los tipos</option>
+            ${state.data.tipos.map(t=>`<option value="${t.id}">${t.nivel2||t.nivel1}</option>`).join('')}
           </select>
         </div>
         <div id="dw-qlist-riskScoring">
@@ -2381,17 +2410,22 @@ async function deleteAmbito(id) { await deleteDominio(id); }
 function renderTipos() {
   document.getElementById('content').innerHTML = `
     <div class="section-header">
-      <div><div class="section-title">Tipos de Tercero</div><div class="section-sub">Jerarquía de hasta 3 niveles</div></div>
+      <div><div class="section-title">Tipos de Tercero</div><div class="section-sub">Jerarquía de hasta 3 niveles · Categoría para filtrar preguntas</div></div>
       <button class="btn btn-primary" onclick="showTipoModal(null)">${SVG.plus} Nuevo Tipo</button>
     </div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
-      <thead><tr><th>Nivel 1</th><th>Nivel 2</th><th>Nivel 3</th><th>Terceros Asociados</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nivel 1</th><th>Nivel 2</th><th>Nivel 3</th><th>Categoría</th><th>Terceros Asociados</th><th>Acciones</th></tr></thead>
       <tbody>
         ${state.data.tipos.map(t => {
           const tercs = state.data.terceros.filter(x=>(t.terceros||[]).includes(x.id));
+          const cat = t.categoria || '';
+          const catBadge = cat === 'directo'   ? '<span class="badge badge-blue">Directo</span>'
+                         : cat === 'indirecto' ? '<span class="badge badge-amber">Indirecto</span>'
+                         : '<span style="color:var(--text3);font-size:12px">Todos</span>';
           return `<tr>
-            <td style="color:var(--text);font-weight:500">${t.nivel1||'—'}</td>
+            <td style="font-weight:500">${t.nivel1||'—'}</td>
             <td>${t.nivel2||'—'}</td><td>${t.nivel3||'—'}</td>
+            <td>${catBadge}</td>
             <td><div style="display:flex;flex-wrap:wrap;gap:4px">
               ${tercs.slice(0,3).map(x=>`<span class="badge badge-gray">${x.nombre}</span>`).join('')}
               ${tercs.length>3?`<span class="badge badge-gray">+${tercs.length-3}</span>`:''}
@@ -2413,6 +2447,7 @@ async function deleteTipo(id) {
 }
 function showTipoModal(id) {
   const t = id ? state.data.tipos.find(x=>x.id===id) : null;
+  const cat = t?.categoria || '';
   openModal(`
     <div class="modal">
       <div class="modal-header"><div class="modal-title">${t?'Editar Tipo':'Nuevo Tipo de Tercero'}</div><button class="btn btn-ghost btn-icon" onclick="closeModal()">${SVG.x}</button></div>
@@ -2421,6 +2456,16 @@ function showTipoModal(id) {
         <div class="form-group"><label class="form-label">Nivel 1 *</label><input class="form-input" id="tp-n1" value="${t?.nivel1||''}" placeholder="Ej: Proveedor, Cliente..."></div>
         <div class="form-group"><label class="form-label">Nivel 2</label><input class="form-input" id="tp-n2" value="${t?.nivel2||''}" placeholder="Ej: Proveedor Directo..."></div>
         <div class="form-group"><label class="form-label">Nivel 3</label><input class="form-input" id="tp-n3" value="${t?.nivel3||''}" placeholder="Ej: Proveedor Crítico TI..."></div>
+        <div class="form-group">
+          <label class="form-label">Categoría <span style="color:var(--text3);font-weight:400">(para filtrar preguntas)</span></label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            ${[['','Todos','var(--text2)'],['directo','Directo','var(--accent)'],['indirecto','Indirecto','var(--amber)']].map(([val,lbl,color]) => `
+              <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);border:2px solid ${cat===val?color:'var(--border2)'};background:${cat===val?'var(--accent-glow)':'transparent'};cursor:pointer;transition:all .15s" onclick="this.closest('.form-group').querySelectorAll('label').forEach(l=>l.style.cssText='flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);border:2px solid var(--border2);background:transparent;cursor:pointer;transition:all .15s');this.style.cssText='flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);border:2px solid ${color};background:var(--accent-glow);cursor:pointer;transition:all .15s'">
+                <input type="radio" name="tp-cat" value="${val}" ${cat===val?'checked':''} style="accent-color:${color}">
+                <span style="font-size:13px;font-weight:500;color:${color}">${lbl}</span>
+              </label>`).join('')}
+          </div>
+        </div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveTipo('${id||''}')">${SVG.check} Guardar</button></div>
     </div>
@@ -2429,7 +2474,8 @@ function showTipoModal(id) {
 async function saveTipo(id) {
   const n1 = document.getElementById('tp-n1').value.trim();
   if (!n1) { notify('Nivel 1 obligatorio', 'error'); return; }
-  const item = { id:id||genId(), nivel1:n1, nivel2:document.getElementById('tp-n2').value, nivel3:document.getElementById('tp-n3').value, terceros:id?(state.data.tipos.find(t=>t.id===id)?.terceros||[]):[] };
+  const cat = document.querySelector('input[name="tp-cat"]:checked')?.value || '';
+  const item = { id:id||genId(), nivel1:n1, nivel2:document.getElementById('tp-n2').value, nivel3:document.getElementById('tp-n3').value, categoria:cat, terceros:id?(state.data.tipos.find(t=>t.id===id)?.terceros||[]):[] };
   await saveItem('tipos', item); notify(id?'Tipo actualizado':'Tipo creado'); closeModal(); renderTipos();
 }
 
@@ -3652,17 +3698,124 @@ function renderSCTabs(dominios) {
 }
 
 // Filters preguntas by aplicaA matching the tercero's tipo
+// Returns the tipo object for a tercero (matches by tipo string → tipos list)
+function getTipoObj(tercero) {
+  if (!tercero?.tipo) return null;
+  return state.data.tipos.find(t => {
+    const val = t.nivel2 || t.nivel1 || '';
+    const label = [t.nivel1, t.nivel2, t.nivel3].filter(Boolean).join(' › ');
+    return val === tercero.tipo || label === tercero.tipo;
+  }) || null;
+}
+
+// Returns label for aplicaA array in question card button
+function renderAplicaALabel(aplicaA) {
+  if (!aplicaA || !aplicaA.length || aplicaA === 'todos') return '👥 Todos';
+  const vals = Array.isArray(aplicaA) ? aplicaA : [aplicaA];
+  if (!vals.length) return '👥 Todos';
+  const labels = vals.map(v => {
+    if (v === 'cat:directo')   return '➡️ Directo';
+    if (v === 'cat:indirecto') return '↩️ Indirecto';
+    const t = state.data.tipos.find(x => x.id === v);
+    return t ? (t.nivel2 || t.nivel1) : v;
+  });
+  return labels.slice(0,2).join(', ') + (labels.length > 2 ? ` +${labels.length-2}` : '');
+}
+
+// Toggle the aplicaA multi-select dropdown
+function dwToggleAplicaMenu(btn, phase, idx) {
+  const existing = document.getElementById('aplica-menu');
+  if (existing) { existing.remove(); return; }
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  const p = target.preguntas[idx];
+  const selected = Array.isArray(p.aplicaA) ? [...p.aplicaA] : (p.aplicaA && p.aplicaA !== 'todos' ? [p.aplicaA] : []);
+  const opciones = [
+    { id:'cat:directo',   label:'Categoría: Directo',   group:'Categorías' },
+    { id:'cat:indirecto', label:'Categoría: Indirecto',  group:'Categorías' },
+    ...state.data.tipos.map(t => ({ id:t.id, label:(t.nivel2||t.nivel1||'')+(t.nivel3?' › '+t.nivel3:''), group:'Tipos específicos' }))
+  ];
+  const menu = document.createElement('div');
+  menu.id = 'aplica-menu';
+  menu.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px;max-height:300px;overflow-y:auto;padding:6px 0';
+  const rect = btn.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  let html = `<div style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Aplica a</div>
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px" onclick="event.stopPropagation()">
+      <input type="checkbox" id="aplica-todos" ${!selected.length?'checked':''} onchange="dwAplicaTodosChange(this,'${phase}',${idx})">
+      <span>👥 Todos (por defecto)</span>
+    </label><div style="height:1px;background:var(--border);margin:3px 0"></div>`;
+  let curGroup = '';
+  opciones.forEach(op => {
+    if (op.group !== curGroup) {
+      curGroup = op.group;
+      html += `<div style="padding:5px 12px 2px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">${op.group}</div>`;
+    }
+    html += `<label style="display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px" onclick="event.stopPropagation()">
+      <input type="checkbox" value="${op.id}" ${selected.includes(op.id)?'checked':''} onchange="dwAplicaToggle(this,'${phase}',${idx})">
+      <span>${op.label}</span></label>`;
+  });
+  menu.innerHTML = html;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', function closeMn(e) {
+    if (!menu.contains(e.target) && e.target !== btn) { menu.remove(); document.removeEventListener('click', closeMn); }
+  }), 0);
+}
+
+function dwAplicaTodosChange(cb, phase, idx) {
+  if (!cb.checked) return;
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  target.preguntas[idx].aplicaA = [];
+  document.querySelectorAll('#aplica-menu input[type=checkbox]:not(#aplica-todos)').forEach(c => c.checked = false);
+  dwRefreshAplicaBtn(phase, idx);
+}
+
+function dwAplicaToggle(cb, phase, idx) {
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  let sel = Array.isArray(target.preguntas[idx].aplicaA) ? [...target.preguntas[idx].aplicaA] : [];
+  if (cb.checked) {
+    sel = [...new Set([...sel, cb.value])];
+    const todosEl = document.getElementById('aplica-todos');
+    if (todosEl) todosEl.checked = false;
+  } else {
+    sel = sel.filter(v => v !== cb.value);
+  }
+  target.preguntas[idx].aplicaA = sel;
+  if (!sel.length) { const te = document.getElementById('aplica-todos'); if (te) te.checked = true; }
+  dwRefreshAplicaBtn(phase, idx);
+}
+
+function dwRefreshAplicaBtn(phase, idx) {
+  const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
+  const p = target.preguntas[idx];
+  const card = document.getElementById(`dwqc-${phase}-${idx}`);
+  if (!card) return;
+  card.querySelectorAll('button').forEach(b => {
+    if (b.getAttribute('onclick')?.includes('dwToggleAplicaMenu')) {
+      b.innerHTML = renderAplicaALabel(p.aplicaA) + ' ▾';
+    }
+  });
+}
+
+// Filters preguntas by aplicaA matching the tercero's tipo and categoria
 function filtrarPreguntasPorTipo(preguntas, tercero) {
   if (!tercero?.tipo) return preguntas;
-  const tipo = (tercero.tipo || '').toLowerCase();
-  const esDirecto   = tipo.includes('directo') && !tipo.includes('indirecto');
-  const esIndirecto = tipo.includes('indirecto');
+  const tipoObj = getTipoObj(tercero);
+  const categoriaTercero = tipoObj?.categoria || '';
   return preguntas.filter(p => {
-    const a = p.aplicaA || 'todos';
-    if (a === 'todos') return true;
-    if (a === 'directo'   && esDirecto)   return true;
-    if (a === 'indirecto' && esIndirecto) return true;
-    return false;
+    const aplicaA = p.aplicaA;
+    if (!aplicaA || aplicaA === 'todos' || (Array.isArray(aplicaA) && !aplicaA.length)) return true;
+    if (typeof aplicaA === 'string') {
+      if (aplicaA === 'directo')   return categoriaTercero === 'directo';
+      if (aplicaA === 'indirecto') return categoriaTercero === 'indirecto';
+      return true;
+    }
+    return aplicaA.some(v => {
+      if (v === 'cat:directo')   return categoriaTercero === 'directo';
+      if (v === 'cat:indirecto') return categoriaTercero === 'indirecto';
+      if (tipoObj && v === tipoObj.id) return true;
+      return false;
+    });
   });
 }
 
