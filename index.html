@@ -75,7 +75,24 @@
     width: var(--sidebar-w); flex-shrink: 0;
     background: var(--surface); border-right: 1px solid var(--border);
     display: flex; flex-direction: column; overflow-y: auto; z-index: 100;
+    transition: width .22s cubic-bezier(.4,0,.2,1);
   }
+  #sidebar.collapsed { width: 52px; overflow: hidden; }
+  #sidebar.collapsed .sidebar-logo .logo-text { display:none; }
+  #sidebar.collapsed .sidebar-logo .logo-sub { display:none; }
+  #sidebar.collapsed .nav-section-label { display:none; }
+  #sidebar.collapsed .nav-item span, #sidebar.collapsed .nav-item { justify-content:center; font-size:0; padding:10px; }
+  #sidebar.collapsed .nav-item svg { width:18px; height:18px; flex-shrink:0; }
+  #sidebar.collapsed .theme-btn-label { display:none; }
+  #sidebar.collapsed #theme-label, #sidebar.collapsed #theme-track { display:none; }
+  #sidebar.collapsed .sidebar-bottom { padding:8px 4px; }
+  .sidebar-toggle-btn {
+    display:flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:6px; border:1px solid var(--border2);
+    background:var(--surface2); cursor:pointer; color:var(--text3);
+    transition:all .15s; flex-shrink:0;
+  }
+  .sidebar-toggle-btn:hover { color:var(--text); background:var(--surface3); }
   .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
   .sidebar-logo .logo-text {
     font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.5px;
@@ -419,9 +436,14 @@
 <body>
 <div id="app">
   <nav id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-text">TPRM</div>
-      <div class="logo-sub">Risk Management Platform</div>
+    <div class="sidebar-logo" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div>
+        <div class="logo-text">TPRM</div>
+        <div class="logo-sub">Risk Management Platform</div>
+      </div>
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Colapsar barra lateral">
+        <svg id="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-section-label">Principal</div>
@@ -791,6 +813,25 @@ const API_PROVIDERS = {
 const API_KEYS = {};
 
 function closeModal() { document.querySelector('.modal-backdrop')?.remove(); }
+
+// ── SIDEBAR ───────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  const collapsed = sb.classList.toggle('collapsed');
+  localStorage.setItem('tprm_sidebar', collapsed ? '1' : '0');
+  if (icon) icon.setAttribute('d', collapsed ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6');
+}
+(function() {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('tprm_sidebar') === '1') {
+      const sb = document.getElementById('sidebar');
+      const icon = document.getElementById('sidebar-toggle-icon');
+      if (sb) sb.classList.add('collapsed');
+      if (icon) icon.setAttribute('d', 'M9 18l6-6-6-6');
+    }
+  });
+})();
 
 // ── THEME ────────────────────────────────────────────────────
 function toggleTheme() {
@@ -1682,9 +1723,10 @@ function renderDomainCard(d) {
   const cq = d.cuestionario;
   const countSC  = (cq?.scopeCheck?.preguntas||[]).length;
   const countRS  = (cq?.riskScoring?.preguntas||[]).length;
-  const countDDR = (cq?.ddReducida?.preguntas||[]).length;
-  const countDDA = (cq?.ddAmpliada?.preguntas||[]).length;
-  const total = countSC + countRS + countDDR + countDDA;
+  const ddPregs  = cq?.dd?.preguntas || [];
+  const countDDR = ddPregs.filter(p => !p.soloAmpliada).length;
+  const countDDA = ddPregs.length; // ampliada includes all
+  const total = countSC + countRS + ddPregs.length;
 
   const phaseBar = [
     { label:'SC', count:countSC, color:'#8b5cf6', title:'Scope Check' },
@@ -1860,22 +1902,33 @@ function dwCheckDup(val) {
 }
 
 function renderDWQuestions(phase) {
-  const preguntas = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
+  const allPregs = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
+  const filterVal = DW[`filter_${phase}`] || 'todos';
+  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
   const phaseLabels = { scopeCheck:'Scope Check', dd:'Due Diligence' };
+
   const libSuggestions = getBibliotecaSuggestions(phase, '');
 
   return `
     <div class="builder-layout">
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-          <div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <div style="font-weight:600;font-size:14px">${phaseLabels[phase]||phase}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">
-              ${phase==='scopeCheck' ? 'Determina si el tercero es material para este dominio.' :
-                phase==='dd' ? 'Preguntas de Due Diligence. Marca <strong>Solo Ampliada</strong> en las que solo apliquen cuando el Risk Scoring sea alto.' : ''}
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--text3)">Filtrar por tipo:</span>
+              <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
+                onchange="DW['filter_${phase}']=this.value;document.getElementById('dw-qlist-${phase}').innerHTML=renderDWFilteredList('${phase}')">
+                <option value="todos" ${filterVal==='todos'?'selected':''}>Todos</option>
+                <option value="directo" ${filterVal==='directo'?'selected':''}>Solo Directo</option>
+                <option value="indirecto" ${filterVal==='indirecto'?'selected':''}>Solo Indirecto</option>
+              </select>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('${phase}')">${SVG.plus} Añadir pregunta</button>
+          <div style="font-size:11px;color:var(--text3)">
+            ${phase==='scopeCheck' ? 'Determina si el tercero es material para este dominio.' :
+              phase==='dd' ? 'Marca <strong>Solo Ampliada</strong> en preguntas que solo aplican con Risk Scoring alto.' : ''}
+          </div>
         </div>
         ${phase === 'scopeCheck' ? `
           <div class="info-box" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
@@ -1884,16 +1937,22 @@ function renderDWQuestions(phase) {
               style="width:70px" onchange="DW.cuestionario.scopeCheck.umbralMaterial=+this.value">
             <span style="font-size:11px;color:var(--accent)">puntos mínimos para considerar material</span>
           </div>` : ''}
-        ${phase === 'dd' && preguntas.some(p=>!p.soloAmpliada) ? `
+        ${phase === 'dd' && allPregs.some(p=>!p.soloAmpliada) ? `
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--green-soft);border-radius:var(--radius-sm);font-size:11px;color:var(--green)">
             🟡 <strong>DD Reducida</strong>: preguntas sin marca · 
             🔴 <strong>DD Ampliada</strong>: todas las preguntas
           </div>` : ''}
         <div id="dw-qlist-${phase}">
-          ${preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
+          ${preguntas.length ? preguntas.map((p,i)=>{
+            const realIdx = allPregs.indexOf(p);
+            return renderDWQuestionCard(p, realIdx, phase);
+          }).join('') :
             `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
-              <p style="font-size:13px">Sin preguntas. Añade una nueva o copia de la biblioteca.</p>
+              <p style="font-size:13px">${filterVal!=='todos'?'Sin preguntas para este tipo. Cambia el filtro o añade una nueva.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
             </div>`}
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-start">
+          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('${phase}')">${SVG.plus} Añadir pregunta</button>
         </div>
       </div>
       <div class="library-panel">
@@ -1905,6 +1964,17 @@ function renderDWQuestions(phase) {
         </div>
       </div>
     </div>`;
+}
+
+function renderDWFilteredList(phase) {
+  const allPregs = (phase === 'dd' ? DW.cuestionario.dd?.preguntas : DW.cuestionario[phase]?.preguntas) || [];
+  const filterVal = DW[`filter_${phase}`] || 'todos';
+  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
+  if (!preguntas.length) return `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)"><p style="font-size:13px">Sin preguntas para este filtro.</p></div>`;
+  return preguntas.map(p => {
+    const realIdx = allPregs.indexOf(p);
+    return renderDWQuestionCard(p, realIdx, phase);
+  }).join('');
 }
 
 function getBibliotecaSuggestions(phase, query) {
@@ -1966,7 +2036,14 @@ function renderDWQuestionCard(p, idx, phase) {
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer">
             <input type="checkbox" ${p.obligatoria?'checked':''} onchange="DW.cuestionario['${phase}'].preguntas[${idx}].obligatoria=this.checked"> Obligatoria
           </label>
-          ${isFromLib ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-glow);color:var(--accent)">📚 Copia de biblioteca</span>` : ''}
+          <select class="form-select" style="width:auto;font-size:11px;padding:3px 6px"
+            title="Aplica a tipo de tercero"
+            onchange="DW.cuestionario['${phase === 'dd' ? 'dd' : phase}'].preguntas[${idx}].aplicaA=this.value;dwRefreshQList('${phase}')">
+            <option value="todos" ${(p.aplicaA||'todos')==='todos'?'selected':''}>👥 Todos</option>
+            <option value="directo" ${p.aplicaA==='directo'?'selected':''}>➡️ Directo</option>
+            <option value="indirecto" ${p.aplicaA==='indirecto'?'selected':''}>↩️ Indirecto</option>
+          </select>
+          ${isFromLib ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-glow);color:var(--accent)">📚 Biblioteca</span>` : ''}
           ${phase === 'dd' ? `<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid ${p.soloAmpliada?'var(--red)':'var(--border)'};background:${p.soloAmpliada?'var(--red-soft)':'transparent'};color:${p.soloAmpliada?'var(--red)':'var(--text3)'}" title="Solo aparece en DD Ampliada">
             <input type="checkbox" ${p.soloAmpliada?'checked':''} onchange="DW.cuestionario['dd'].preguntas[${idx}].soloAmpliada=this.checked;dwRefreshQList('dd')"> Solo Ampliada
           </label>` : ''}
@@ -2008,11 +2085,16 @@ function dwAddQuestion(phase) {
   if (!target) return;
   target.preguntas.push({
     id: genId(), texto:'', tipo:'select_unico', obligatoria:true,
-    soloAmpliada: false,
+    soloAmpliada: false, aplicaA: 'todos',
     opciones:[{texto:'Sí',valor:3,flag:false},{texto:'No',valor:0,flag:true}],
     origenId:null
   });
   dwRefreshQList(phase);
+  // Scroll to bottom of question list
+  setTimeout(() => {
+    const el = document.getElementById(`dw-qlist-${phase}`);
+    if (el) el.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'end' });
+  }, 50);
 }
 
 function dwDeleteQuestion(phase, idx) {
@@ -2046,10 +2128,15 @@ function dwRefreshQList(phase) {
   const el = document.getElementById(`dw-qlist-${phase}`);
   if (!el) return;
   const target = phase === 'dd' ? DW.cuestionario.dd : DW.cuestionario[phase];
-  const preguntas = target?.preguntas || [];
-  el.innerHTML = preguntas.length ? preguntas.map((p,i)=>renderDWQuestionCard(p,i,phase)).join('') :
+  const allPregs = target?.preguntas || [];
+  const filterVal = DW[`filter_${phase}`] || 'todos';
+  const preguntas = filterVal === 'todos' ? allPregs : allPregs.filter(p => (p.aplicaA||'todos') === 'todos' || p.aplicaA === filterVal);
+  el.innerHTML = preguntas.length ? preguntas.map(p => {
+    const realIdx = allPregs.indexOf(p);
+    return renderDWQuestionCard(p, realIdx, phase);
+  }).join('') :
     `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
-      <p style="font-size:13px">Sin preguntas. Añade una nueva o copia de la biblioteca.</p>
+      <p style="font-size:13px">${filterVal!=='todos'?'Sin preguntas para este tipo.':'Sin preguntas. Añade una nueva o copia de la biblioteca.'}</p>
     </div>`;
   dwRefreshTabCounts();
 }
@@ -2141,13 +2228,21 @@ function renderDWRiskScoring() {
             <div style="font-weight:500;font-size:13px">Preguntas de Risk Scoring</div>
             <div style="font-size:11px;color:var(--text3);margin-top:2px">Evaluadas internamente por tu equipo</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('riskScoring')">${SVG.plus} Añadir pregunta</button>
+          <select class="form-select" style="width:auto;font-size:12px;padding:4px 8px"
+            onchange="DW['filter_riskScoring']=this.value;document.getElementById('dw-qlist-riskScoring').innerHTML=renderDWFilteredList('riskScoring')">
+            <option value="todos">Todos</option>
+            <option value="directo">Solo Directo</option>
+            <option value="indirecto">Solo Indirecto</option>
+          </select>
         </div>
         <div id="dw-qlist-riskScoring">
           ${(rs.preguntas||[]).length ? (rs.preguntas||[]).map((p,i)=>renderDWQuestionCard(p,i,'riskScoring')).join('') :
             `<div class="empty-state" style="padding:30px;border:1px dashed var(--border2);border-radius:var(--radius)">
               <p style="font-size:13px">Sin preguntas de Risk Scoring.</p>
             </div>`}
+        </div>
+        <div style="margin-top:14px">
+          <button class="btn btn-secondary btn-sm" onclick="dwAddQuestion('riskScoring')">${SVG.plus} Añadir pregunta</button>
         </div>
       </div>
       <div class="library-panel">
@@ -3556,6 +3651,21 @@ function renderSCTabs(dominios) {
   }).join('');
 }
 
+// Filters preguntas by aplicaA matching the tercero's tipo
+function filtrarPreguntasPorTipo(preguntas, tercero) {
+  if (!tercero?.tipo) return preguntas;
+  const tipo = (tercero.tipo || '').toLowerCase();
+  const esDirecto   = tipo.includes('directo') && !tipo.includes('indirecto');
+  const esIndirecto = tipo.includes('indirecto');
+  return preguntas.filter(p => {
+    const a = p.aplicaA || 'todos';
+    if (a === 'todos') return true;
+    if (a === 'directo'   && esDirecto)   return true;
+    if (a === 'indirecto' && esIndirecto) return true;
+    return false;
+  });
+}
+
 function scGetFlags(dominios) {
   // Returns array of {dominio, pregunta, respuesta} for all flagged answers across all SC domains
   const flags = [];
@@ -3577,11 +3687,11 @@ function scGetFlags(dominios) {
 function renderSCBody(dominios) {
   const d = dominios.find(x => x.id === HW.scActiveDom);
   if (!d) return '';
-  const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+  const todasPreguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+  const preguntas = filtrarPreguntasPorTipo(todasPreguntas, HW.tercero);
   const respuestas = HW.hom.scopeCheck.respuestasPorDominio[d.id] || {};
   const umbral = d.cuestionario?.scopeCheck?.umbralMaterial || 1;
 
-  // Check flags in THIS domain to show inline warning
   const domFlags = preguntas.filter(p => {
     const resp = respuestas[p.id];
     const vals = Array.isArray(resp) ? resp : [resp];
@@ -3591,12 +3701,13 @@ function renderSCBody(dominios) {
   return `
     <div class="info-box" style="margin-bottom:16px">
       <strong style="color:${d.color}">${d.nombre}</strong> — Umbral de materialidad: <strong>${umbral} pts</strong>
+      ${HW.tercero?.tipo ? `<span style="margin-left:10px;font-size:11px;color:var(--text3)">· Tipo: ${HW.tercero.tipo}</span>` : ''}
     </div>
     ${domFlags.length ? `<div class="warn-box" style="margin-bottom:14px;border-color:var(--red);background:rgba(239,68,68,.08)">
       🚩 <strong>${domFlags.length} respuesta${domFlags.length>1?'s':''} con flag invalidante</strong> en este dominio.
       Modifica la respuesta para poder completar el Scope Check.
     </div>` : ''}
-    ${renderQsDomainWithInherit(preguntas, respuestas, `sc-${d.id}`, null)}
+    ${renderQsDomainWithInherit(preguntas, respuestas, `sc-${d.id}`, 'scopeCheck')}
   `;
 }
 
@@ -3629,7 +3740,28 @@ async function hwCloseSC() {
 
 async function hwCompletarSC() {
   scCollectCurrent();
-  const dominios = getDominiosActivos();
+  const dominios = getDominiosActivos().filter(d => (d.cuestionario?.scopeCheck?.preguntas||[]).length > 0);
+
+  // Validate ALL domains for mandatory unanswered
+  for (const d of dominios) {
+    const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
+    const respuestas = HW.hom.scopeCheck.respuestasPorDominio[d.id] || {};
+    const missing = preguntas.filter(p => p.obligatoria && !isAnsweredV2(p, respuestas[p.id]));
+    if (missing.length) {
+      notify(`⚠️ ${d.nombre}: ${missing.length} pregunta${missing.length>1?'s':''} obligatoria${missing.length>1?'s':''} sin contestar`, 'error');
+      // Switch to that domain's tab
+      HW.scActiveDom = d.id;
+      document.getElementById('sc-tabs').innerHTML = renderSCTabs(dominios);
+      document.getElementById('sc-body').innerHTML = renderSCBody(dominios);
+      document.getElementById('sc-footer').innerHTML = renderSCFooter(dominios);
+      return;
+    }
+  }
+
+  // Check flags
+  const flags = scGetFlags(dominios);
+  if (flags.length) { notify('🚩 Hay flags invalidantes sin resolver', 'error'); return; }
+
   // Evaluate each domain
   dominios.forEach(d => {
     const preguntas = d.cuestionario?.scopeCheck?.preguntas || [];
@@ -3685,7 +3817,8 @@ function renderRSTabs(dominios) {
 function renderRSBody(dominios) {
   const d = dominios.find(x => x.id === HW.rsActiveDom);
   if (!d) return '';
-  const preguntas = d.cuestionario?.riskScoring?.preguntas || [];
+  const todasPreguntas = d.cuestionario?.riskScoring?.preguntas || [];
+  const preguntas = filtrarPreguntasPorTipo(todasPreguntas, HW.tercero);
   const rs = HW.hom.dominios[d.id]?.riskScoring;
   const respuestas = rs?.respuestas || {};
   const u = d.cuestionario?.riskScoring?.umbrales || {};
@@ -3739,12 +3872,27 @@ async function hwCompletarRS() {
   hwStopAutosave();
   rsCollectCurrent();
   const dominios = getDominiosActivos().filter(d => HW.hom.dominios[d.id]?.scopeResultado === 'material');
+
+  // Validate ALL domains for mandatory unanswered
+  for (const d of dominios) {
+    const preguntas = d.cuestionario?.riskScoring?.preguntas || [];
+    const resp = HW.hom.dominios[d.id].riskScoring.respuestas || {};
+    const missing = preguntas.filter(p => p.obligatoria && !isAnsweredV2(p, resp[p.id]));
+    if (missing.length) {
+      notify(`⚠️ ${d.nombre}: ${missing.length} pregunta${missing.length>1?'s':''} obligatoria${missing.length>1?'s':''} sin contestar`, 'error');
+      HW.rsActiveDom = d.id;
+      document.getElementById('rs-tabs').innerHTML = renderRSTabs(dominios);
+      document.getElementById('rs-body').innerHTML = renderRSBody(dominios);
+      hwStartAutosaveRS(dominios);
+      return;
+    }
+  }
+
   dominios.forEach(d => {
     const rs = HW.hom.dominios[d.id].riskScoring;
     rs.estado = 'completado';
     const aprNombre = d.cuestionario?.riskScoring?.aprobadores?.[rs.nivel] || '';
     HW.hom.dominios[d.id].aprobacion.aprobadorRequerido = aprNombre;
-    // sinDD domains need no DD — auto-approve them unless there's a real non-admin approver
     if (rs.nivel === 'sinDD') {
       const aprUser = aprNombre ? state.data.usuarios.find(u => u.nombre === aprNombre) : null;
       const aprEsAdmin = aprUser ? (aprUser.roles||[]).includes('admin') : true;
@@ -3807,7 +3955,7 @@ function renderDDBody(dominios) {
   const rs = HW.hom.dominios[d.id]?.riskScoring;
   const dd = HW.hom.dominios[d.id]?.dd;
   const esAmpliada = rs?.nivel === 'ampliada';
-  const todasPreguntas = d.cuestionario?.dd?.preguntas || [];
+  const todasPreguntas = filtrarPreguntasPorTipo(d.cuestionario?.dd?.preguntas || [], HW.tercero);
   const reducidas = todasPreguntas.filter(p => !p.soloAmpliada);
   const soloAmpliadas = todasPreguntas.filter(p => p.soloAmpliada);
   const preguntas = esAmpliada ? todasPreguntas : reducidas;
